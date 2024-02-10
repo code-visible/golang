@@ -7,6 +7,7 @@ import (
 
 var ErrNotDirectory = errors.New("project path should be a directory")
 
+// MustDir promise the given path is a directory
 func MustDir(path string) error {
 	stat, err := os.Stat(path)
 	if err != nil {

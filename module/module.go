@@ -1,10 +1,10 @@
 package module
 
 import (
-	"go/ast"
-	"go/parser"
+	"fmt"
 	"go/token"
 
+	"github.com/code-visible/golang/sourcepkg"
 	"github.com/code-visible/golang/utils"
 )
 
@@ -14,11 +14,11 @@ type Module struct {
 	Files []string `json:"files"`
 
 	fs   *token.FileSet
-	pkgs map[string]*ast.Package
+	pkgs map[string]*sourcepkg.SourcePkg
 }
 
 // initialize module
-func NewModule(path string) (*Module, error) {
+func NewModule(name string, path string) (*Module, error) {
 	// make sure the given path is a directory
 	err := utils.MustDir(path)
 	if err != nil {
@@ -27,22 +27,25 @@ func NewModule(path string) (*Module, error) {
 
 	// initialize module struct
 	m := &Module{
-		Name:  "",
+		Name:  name,
 		Path:  path,
 		Files: nil,
 		fs:    token.NewFileSet(),
-		pkgs:  nil,
+		pkgs:  make(map[string]*sourcepkg.SourcePkg),
 	}
 
-	// TODO: decide whether the comment should be parsed
-	pkgs, err := parser.ParseDir(m.fs, path, nil, parser.ParseComments)
-	if err != nil {
-		return nil, err
+	dirs := utils.ListDirs(path, true)
+
+	for _, d := range dirs {
+		pkg, err := sourcepkg.NewSourcePkg(d, m.fs)
+		if err != nil {
+			fmt.Printf("meet error while parse package, skipped, error: %s\n", err)
+			continue
+		}
+		m.pkgs[pkg.Name] = pkg
 	}
 
-	m.pkgs = pkgs
-
-	// exported files
+	// list all exported files
 	m.fs.Iterate(func(f *token.File) bool {
 		m.Files = append(m.Files, f.Name())
 		return true

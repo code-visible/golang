@@ -17,6 +17,7 @@ type Module struct {
 	pkgs map[string]*ast.Package
 }
 
+// initialize module
 func NewModule(path string) (*Module, error) {
 	// make sure the given path is a directory
 	err := utils.MustDir(path)
@@ -24,7 +25,7 @@ func NewModule(path string) (*Module, error) {
 		return nil, err
 	}
 
-	// initialize module
+	// initialize module struct
 	m := &Module{
 		Name:  "",
 		Path:  path,

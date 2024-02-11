@@ -11,17 +11,17 @@ import (
 )
 
 type SourceFile struct {
-	ID            string   `json:"id"`
-	Name          string   `json:"name"`
-	Path          string   `json:"path"`
-	Pkg           string   `json:"pkg"`
-	CallableCount int64    `json:"callableCount"`
-	AbstractCount int64    `json:"abstractCount"`
-	Deps          []string `json:"deps"`
+	ID        string               `json:"id"`
+	Name      string               `json:"name"`
+	Path      string               `json:"path"`
+	Pkg       string               `json:"pkg"`
+	Callables []*node.Callable     `json:"callables"`
+	Abstracts []*node.Abstract     `json:"abstracts"`
+	Calls     []callhierarchy.Call `json:"calls"`
+	Deps      []string             `json:"deps"`
 
 	abstracts map[string]*node.Abstract
 	callables map[string]*node.Callable
-	calls     []callhierarchy.Call
 	parsed    *ast.File
 	pkg       *ast.Package
 	fset      *token.FileSet
@@ -29,17 +29,18 @@ type SourceFile struct {
 
 func NewSourceFile(pkg string, path string, file *ast.File, fset *token.FileSet) *SourceFile {
 	return &SourceFile{
-		ID:            "",
-		Name:          filepath.Base(path),
-		Path:          filepath.Dir(path),
-		Pkg:           pkg,
-		CallableCount: -1,
-		AbstractCount: -1,
-		Deps:          nil,
-		callables:     make(map[string]*node.Callable),
-		parsed:        file,
-		pkg:           nil,
-		fset:          fset,
+		ID:        "",
+		Name:      filepath.Base(path),
+		Path:      filepath.Dir(path),
+		Pkg:       pkg,
+		Callables: nil,
+		Abstracts: nil,
+		Deps:      nil,
+		abstracts: make(map[string]*node.Abstract),
+		callables: make(map[string]*node.Callable),
+		parsed:    file,
+		pkg:       nil,
+		fset:      fset,
 	}
 }
 
@@ -49,7 +50,7 @@ func (sf *SourceFile) EnumerateCallables() {
 		if !ok {
 			continue
 		}
-		sf.callables[fn.Name.Name] = &node.Callable{
+		c := &node.Callable{
 			ID:          "",
 			Pos:         sf.fset.Position(fn.Pos()).String(),
 			Name:        fn.Name.Name,
@@ -66,6 +67,8 @@ func (sf *SourceFile) EnumerateCallables() {
 			Private:     false,
 			Orphan:      false,
 		}
+		sf.callables[fn.Name.Name] = c
+		sf.Callables = append(sf.Callables, c)
 	}
 }
 
@@ -75,10 +78,12 @@ func (sf *SourceFile) EnumerateAbstracts() {
 			for _, spec := range decl.Specs {
 				if spec, ok := spec.(*ast.TypeSpec); ok {
 					// TODO:
-					sf.abstracts[spec.Name.String()] = &node.Abstract{
+					ab := &node.Abstract{
 						ID:   "",
 						Name: spec.Name.String(),
 					}
+					sf.abstracts[spec.Name.String()] = ab
+					sf.Abstracts = append(sf.Abstracts, ab)
 				}
 			}
 		}
@@ -125,7 +130,7 @@ func (sf *SourceFile) EnumerateCallHierarchy() {
 				panic("parse call error, not covered case")
 			}
 
-			sf.calls = append(sf.calls, call)
+			sf.Calls = append(sf.Calls, call)
 		}
 
 		return true

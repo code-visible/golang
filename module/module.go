@@ -34,7 +34,11 @@ func NewModule(name string, path string) (*Module, error) {
 		pkgs:  make(map[string]*sourcepkg.SourcePkg),
 	}
 
-	dirs := utils.ListDirs(path, true)
+	return m, nil
+}
+
+func (m *Module) ScanFiles() {
+	dirs := utils.ListDirs(m.Path, true)
 
 	for _, d := range dirs {
 		pkg, err := sourcepkg.NewSourcePkg(d, m.fs)
@@ -43,6 +47,7 @@ func NewModule(name string, path string) (*Module, error) {
 			continue
 		}
 		m.pkgs[pkg.Name] = pkg
+		pkg.ParseFiles()
 	}
 
 	// list all exported files
@@ -50,6 +55,4 @@ func NewModule(name string, path string) (*Module, error) {
 		m.Files = append(m.Files, f.Name())
 		return true
 	})
-
-	return m, nil
 }

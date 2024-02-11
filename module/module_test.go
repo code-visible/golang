@@ -10,8 +10,13 @@ func TestCurrentDirectoryAsModule(t *testing.T) {
 	m, err := NewModule("test", "multifiles")
 	if err != nil {
 		t.Error(err)
+		return
 	}
-	if m == nil || len(m.Files) == 0 {
-		t.Fail()
+	if m == nil {
+		t.FailNow()
+	}
+	m.ScanFiles()
+	if len(m.Files) == 0 {
+		t.FailNow()
 	}
 }

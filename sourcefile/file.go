@@ -107,7 +107,7 @@ func (sf *SourceFile) EnumerateCallHierarchy() {
 			for i := len(trace) - 2; i >= 0; i-- {
 				if fnDecl, ok := trace[i].(*ast.FuncDecl); ok {
 					call.Caller = fnDecl.Name.Name
-					call.CalleePos = trace[i].Pos()
+					call.CallerPos = trace[i].Pos()
 					break
 				}
 			}

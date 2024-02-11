@@ -9,9 +9,10 @@ import (
 )
 
 type Module struct {
-	Name  string   `json:"name"`
-	Path  string   `json:"path"`
-	Files []string `json:"files"`
+	Name  string                 `json:"name"`
+	Path  string                 `json:"path"`
+	Pkgs  []*sourcepkg.SourcePkg `json:"pkgs"`
+	Files []string               `json:"files"`
 
 	fs   *token.FileSet
 	pkgs map[string]*sourcepkg.SourcePkg
@@ -29,6 +30,7 @@ func NewModule(name string, path string) (*Module, error) {
 	m := &Module{
 		Name:  name,
 		Path:  path,
+		Pkgs:  nil,
 		Files: nil,
 		fs:    token.NewFileSet(),
 		pkgs:  make(map[string]*sourcepkg.SourcePkg),
@@ -46,8 +48,12 @@ func (m *Module) ScanFiles() {
 			fmt.Printf("meet error while parse package, skipped, error: %s\n", err)
 			continue
 		}
-		m.pkgs[pkg.Name] = pkg
 		pkg.ParseFiles()
+
+		m.pkgs[pkg.Name] = pkg
+		m.Pkgs = append(m.Pkgs, pkg)
+
+		// m.Files = append(m.Files, pkg.Files...)
 	}
 
 	// list all exported files
@@ -55,4 +61,5 @@ func (m *Module) ScanFiles() {
 		m.Files = append(m.Files, f.Name())
 		return true
 	})
+
 }

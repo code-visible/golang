@@ -10,17 +10,18 @@ import (
 )
 
 type SourcePkg struct {
-	ID            string   `json:"id"`
-	Name          string   `json:"name"`
-	Path          string   `json:"path"`
-	CallableCount int64    `json:"callableCount"`
-	AbstractCount int64    `json:"abstractCount"`
-	Files         []string `json:"files"`
-	Deps          []string `json:"deps"`
+	ID            string                   `json:"id"`
+	Name          string                   `json:"name"`
+	Path          string                   `json:"path"`
+	CallableCount int64                    `json:"callableCount"`
+	AbstractCount int64                    `json:"abstractCount"`
+	Files         []*sourcefile.SourceFile `json:"files"`
+	Deps          []string                 `json:"deps"`
 
-	parsed *ast.Package
-	files  map[string]*sourcefile.SourceFile
-	fset   *token.FileSet
+	parsed    *ast.Package
+	filenames []string
+	files     map[string]*sourcefile.SourceFile
+	fset      *token.FileSet
 }
 
 func NewSourcePkg(dir string, fset *token.FileSet) (*SourcePkg, error) {
@@ -35,9 +36,10 @@ func NewSourcePkg(dir string, fset *token.FileSet) (*SourcePkg, error) {
 		Path:          dir,
 		CallableCount: -1,
 		AbstractCount: -1,
-		Files:         files,
+		Files:         nil,
 		Deps:          nil,
 		parsed:        nil,
+		filenames:     files,
 		files:         make(map[string]*sourcefile.SourceFile),
 		fset:          fset,
 	}
@@ -46,7 +48,7 @@ func NewSourcePkg(dir string, fset *token.FileSet) (*SourcePkg, error) {
 }
 
 func (p *SourcePkg) ParseFiles() error {
-	for _, f := range p.Files {
+	for _, f := range p.filenames {
 		// TODO: decide whether the comment should be parsed
 		fileParsed, err := parser.ParseFile(p.fset, f, nil, parser.ParseComments)
 		if err != nil {
@@ -60,7 +62,12 @@ func (p *SourcePkg) ParseFiles() error {
 			p.Name = fileParsed.Name.Name
 		}
 		p.parsed.Files[f] = fileParsed
-		p.files[f] = sourcefile.NewSourceFile(p.Name, f, fileParsed, p.fset)
+		sf := sourcefile.NewSourceFile(p.Name, f, fileParsed, p.fset)
+		sf.EnumerateCallables()
+		sf.EnumerateAbstracts()
+		sf.EnumerateCallHierarchy()
+		p.files[f] = sf
+		p.Files = append(p.Files, sf)
 	}
 	return nil
 }

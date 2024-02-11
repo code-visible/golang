@@ -11,11 +11,17 @@ func TestCurrentDirectoryAsPkg(t *testing.T) {
 	p, err := NewSourcePkg("multifiles", token.NewFileSet())
 	if err != nil {
 		t.Error(err)
+		return
+	}
+	err = p.ParseFiles()
+	if err != nil {
+		t.Error(err)
+		return
 	}
 	if p.Name != "main" {
-		t.Fail()
+		t.FailNow()
 	}
 	if len(p.Files) != 2 || len(p.parsed.Files) != 2 {
-		t.Fail()
+		t.FailNow()
 	}
 }

@@ -2,6 +2,7 @@ package utils
 
 import (
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -54,10 +55,14 @@ func ListDirs(dir string, recursive bool) []string {
 	var list []string
 	filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
-			return nil
+			fmt.Println(err)
 		}
 		if d.IsDir() {
-			list = append(list, path)
+			relPath, err := filepath.Rel(dir, path)
+			if err != nil {
+				return errors.New("unknown error while parsing relative path")
+			}
+			list = append(list, relPath)
 		}
 		return nil
 	})

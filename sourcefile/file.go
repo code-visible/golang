@@ -29,7 +29,7 @@ type SourceFile struct {
 
 func NewSourceFile(pkg string, path string, file *ast.File, fset *token.FileSet) *SourceFile {
 	return &SourceFile{
-		ID:        "",
+		ID:        fmt.Sprintf("%s/%s", pkg, filepath.Base(path)),
 		Name:      filepath.Base(path),
 		Path:      filepath.Dir(path),
 		Pkg:       pkg,

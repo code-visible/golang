@@ -1,6 +1,7 @@
 package sourcepkg
 
 import (
+	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -22,12 +23,17 @@ type SourcePkg struct {
 	filenames []string
 	files     map[string]*sourcefile.SourceFile
 	fset      *token.FileSet
+	module    string
 }
 
-func NewSourcePkg(dir string, fset *token.FileSet) (*SourcePkg, error) {
+func NewSourcePkg(module string, dir string, fset *token.FileSet) (*SourcePkg, error) {
 	files, err := utils.ListGoFiles(dir, true)
 	if err != nil {
 		return nil, err
+	}
+
+	if dir == "." {
+		dir = ""
 	}
 
 	p := &SourcePkg{
@@ -42,6 +48,7 @@ func NewSourcePkg(dir string, fset *token.FileSet) (*SourcePkg, error) {
 		filenames:     files,
 		files:         make(map[string]*sourcefile.SourceFile),
 		fset:          fset,
+		module:        module,
 	}
 
 	return p, nil
@@ -60,9 +67,14 @@ func (p *SourcePkg) ParseFiles() error {
 				Files: make(map[string]*ast.File),
 			}
 			p.Name = fileParsed.Name.Name
+			if p.Path != "" {
+				p.ID = fmt.Sprintf("%s/%s", p.module, p.Path)
+			} else {
+				p.ID = p.module
+			}
 		}
 		p.parsed.Files[f] = fileParsed
-		sf := sourcefile.NewSourceFile(p.Name, f, fileParsed, p.fset)
+		sf := sourcefile.NewSourceFile(p.ID, f, fileParsed, p.fset)
 		sf.EnumerateCallables()
 		sf.EnumerateAbstracts()
 		sf.EnumerateCallHierarchy()

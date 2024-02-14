@@ -3,6 +3,8 @@ package module
 import (
 	"fmt"
 	"go/token"
+	"os"
+	"path/filepath"
 
 	"github.com/code-visible/golang/sourcepkg"
 	"github.com/code-visible/golang/utils"
@@ -25,11 +27,21 @@ func NewModule(name string, path string) (*Module, error) {
 	if err != nil {
 		return nil, err
 	}
+	// get absolute path of module
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return nil, err
+	}
+	// enter module as work path
+	err = os.Chdir(absPath)
+	if err != nil {
+		return nil, err
+	}
 
 	// initialize module struct
 	m := &Module{
 		Name:  name,
-		Path:  path,
+		Path:  absPath,
 		Pkgs:  nil,
 		Files: nil,
 		fs:    token.NewFileSet(),
@@ -43,7 +55,7 @@ func (m *Module) ScanFiles() {
 	dirs := utils.ListDirs(m.Path, true)
 
 	for _, d := range dirs {
-		pkg, err := sourcepkg.NewSourcePkg(d, m.fs)
+		pkg, err := sourcepkg.NewSourcePkg(m.Name, d, m.fs)
 		if err != nil {
 			fmt.Printf("meet error while parse package, skipped, error: %s\n", err)
 			continue

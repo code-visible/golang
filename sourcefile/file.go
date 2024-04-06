@@ -11,14 +11,14 @@ import (
 )
 
 type SourceFile struct {
-	ID        string               `json:"id"`
-	Name      string               `json:"name"`
-	Path      string               `json:"path"`
-	Pkg       string               `json:"pkg"`
-	Callables []*node.Callable     `json:"callables"`
-	Abstracts []*node.Abstract     `json:"abstracts"`
-	Calls     []callhierarchy.Call `json:"calls"`
-	Deps      []string             `json:"deps"`
+	ID        string   `json:"id"`
+	Name      string   `json:"name"`
+	Path      string   `json:"path"`
+	Pkg       string   `json:"pkg"`
+	Callables []string `json:"callables"`
+	Abstracts []string `json:"abstracts"`
+	Calls     []string `json:"calls"`
+	Deps      []string `json:"deps"`
 
 	abstracts map[string]*node.Abstract
 	callables map[string]*node.Callable
@@ -68,7 +68,7 @@ func (sf *SourceFile) EnumerateCallables() {
 			Orphan:      false,
 		}
 		sf.callables[fn.Name.Name] = c
-		sf.Callables = append(sf.Callables, c)
+		sf.Callables = append(sf.Callables, c.ID)
 	}
 }
 
@@ -83,7 +83,7 @@ func (sf *SourceFile) EnumerateAbstracts() {
 						Name: spec.Name.String(),
 					}
 					sf.abstracts[spec.Name.String()] = ab
-					sf.Abstracts = append(sf.Abstracts, ab)
+					sf.Abstracts = append(sf.Abstracts, ab.ID)
 				}
 			}
 		}
@@ -130,7 +130,7 @@ func (sf *SourceFile) EnumerateCallHierarchy() {
 				panic("parse call error, not covered case")
 			}
 
-			sf.Calls = append(sf.Calls, call)
+			sf.Calls = append(sf.Calls, call.ID)
 		}
 
 		return true

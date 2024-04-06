@@ -11,13 +11,10 @@ import (
 )
 
 type SourcePkg struct {
-	ID            string                   `json:"id"`
-	Name          string                   `json:"name"`
-	Path          string                   `json:"path"`
-	CallableCount int64                    `json:"callableCount"`
-	AbstractCount int64                    `json:"abstractCount"`
-	Files         []*sourcefile.SourceFile `json:"files"`
-	Deps          []string                 `json:"deps"`
+	ID    string   `json:"id"`
+	Name  string   `json:"name"`
+	Path  string   `json:"path"`
+	Files []string `json:"files"`
 
 	parsed    *ast.Package
 	filenames []string
@@ -37,18 +34,15 @@ func NewSourcePkg(module string, dir string, fset *token.FileSet) (*SourcePkg, e
 	}
 
 	p := &SourcePkg{
-		ID:            "",
-		Name:          "",
-		Path:          dir,
-		CallableCount: -1,
-		AbstractCount: -1,
-		Files:         nil,
-		Deps:          nil,
-		parsed:        nil,
-		filenames:     files,
-		files:         make(map[string]*sourcefile.SourceFile),
-		fset:          fset,
-		module:        module,
+		ID:        "",
+		Name:      "",
+		Path:      dir,
+		Files:     nil,
+		parsed:    nil,
+		filenames: files,
+		files:     make(map[string]*sourcefile.SourceFile),
+		fset:      fset,
+		module:    module,
 	}
 
 	return p, nil
@@ -79,7 +73,7 @@ func (p *SourcePkg) ParseFiles() error {
 		sf.EnumerateAbstracts()
 		sf.EnumerateCallHierarchy()
 		p.files[f] = sf
-		p.Files = append(p.Files, sf)
+		p.Files = append(p.Files, sf.ID)
 	}
 	return nil
 }

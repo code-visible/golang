@@ -8,7 +8,7 @@ import (
 
 func TestCurrentDirectoryAsPkg(t *testing.T) {
 	_ = os.Chdir("../testdata")
-	p, err := NewSourcePkg("multifiles", token.NewFileSet())
+	p, err := NewSourcePkg("main", "multifiles", token.NewFileSet())
 	if err != nil {
 		t.Error(err)
 		return

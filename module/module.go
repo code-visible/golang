@@ -11,10 +11,10 @@ import (
 )
 
 type Module struct {
-	Name  string                 `json:"name"`
-	Path  string                 `json:"path"`
-	Pkgs  []*sourcepkg.SourcePkg `json:"pkgs"`
-	Files []string               `json:"files"`
+	Name  string   `json:"name"`
+	Path  string   `json:"path"`
+	Pkgs  []string `json:"pkgs"`
+	Files []string `json:"files"`
 
 	fs   *token.FileSet
 	pkgs map[string]*sourcepkg.SourcePkg
@@ -40,12 +40,11 @@ func NewModule(name string, path string) (*Module, error) {
 
 	// initialize module struct
 	m := &Module{
-		Name:  name,
-		Path:  absPath,
-		Pkgs:  nil,
-		Files: nil,
-		fs:    token.NewFileSet(),
-		pkgs:  make(map[string]*sourcepkg.SourcePkg),
+		Name: name,
+		Path: absPath,
+		Pkgs: make([]string, 0, 8),
+		fs:   token.NewFileSet(),
+		pkgs: make(map[string]*sourcepkg.SourcePkg),
 	}
 
 	return m, nil
@@ -63,7 +62,7 @@ func (m *Module) ScanFiles() {
 		pkg.ParseFiles()
 
 		m.pkgs[pkg.Name] = pkg
-		m.Pkgs = append(m.Pkgs, pkg)
+		m.Pkgs = append(m.Pkgs, pkg.ID)
 
 		// m.Files = append(m.Files, pkg.Files...)
 	}
@@ -73,5 +72,4 @@ func (m *Module) ScanFiles() {
 		m.Files = append(m.Files, f.Name())
 		return true
 	})
-
 }

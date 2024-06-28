@@ -1,16 +1,17 @@
 package proj
 
 import (
+	"github.com/code-visible/golang/internal/callhierarchy"
 	"github.com/code-visible/golang/internal/nodes"
 	"github.com/code-visible/golang/internal/sourcecode"
 )
 
 type Project struct {
-	Pkgs      []nodes.Pkg      `json:"pkgs"`
-	Files     []nodes.File     `json:"files"`
-	Abstracts []nodes.Abstract `json:"abstracts"`
-	Callables []nodes.Callable `json:"callables"`
-	// Call []call
+	Pkgs      []nodes.Pkg           `json:"pkgs"`
+	Files     []nodes.File          `json:"files"`
+	Abstracts []*nodes.Abstract     `json:"abstracts"`
+	Callables []*nodes.Callable     `json:"callables"`
+	Calls     []*callhierarchy.Call `json:"calls"`
 
 	sm *sourcecode.SourceMap
 }
@@ -33,26 +34,41 @@ func (p *Project) Initialize() {
 func (p *Project) Parse() {
 	p.createPkgs()
 	p.createFiles()
-	p.searchNodesAndCalls()
+	p.retriveNodes()
+	p.retriveCalls()
 }
 
 // create pkgs from source
 func (p *Project) createPkgs() {
-	for idx := range p.sm.Dirs() {
-		p.Pkgs = append(p.Pkgs, nodes.NewSourcePkg(p.sm, idx))
+	for idx, dir := range p.sm.Dirs() {
+		pkg := nodes.NewSourcePkg(p.sm, idx)
+		pkg.Path = dir.Path
+		p.Pkgs = append(p.Pkgs, pkg)
 	}
 }
 
 // create files from source
 func (p *Project) createFiles() {
-	for idx := range p.sm.Files() {
-		p.Files = append(p.Files, nodes.NewSourceFile(p.sm, idx))
+	for idx, f := range p.sm.Files() {
+		file := nodes.NewSourceFile(p.sm, idx)
+		file.Path = f.Path
+		p.Files = append(p.Files, file)
 	}
 }
 
-// search the nodes and calls
-func (p *Project) searchNodesAndCalls() {
+// retrive the nodes
+func (p *Project) retriveNodes() {
 	for _, f := range p.Files {
-		f.Enumerate()
+		f.EnumerateDecls()
+		p.Callables = append(p.Callables, f.Callables()...)
+		p.Abstracts = append(p.Abstracts, f.Abstracts()...)
+	}
+}
+
+// retrive the calls
+func (p *Project) retriveCalls() {
+	for _, f := range p.Files {
+		f.SearchCalls()
+		p.Calls = append(p.Calls, f.Calls()...)
 	}
 }

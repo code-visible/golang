@@ -18,3 +18,17 @@ type Abstract struct {
 	ident  *ast.Ident
 	fields parsedtypes.Fields
 }
+
+func NewAbstract(ident *ast.Ident, strtTyp *ast.StructType) *Abstract {
+	a := &Abstract{
+		Name:   ident.Name,
+		ident:  ident,
+		fields: make(parsedtypes.Fields, 0, len(strtTyp.Fields.List)),
+	}
+
+	for _, field := range strtTyp.Fields.List {
+		a.fields.Parse(field)
+	}
+
+	return a
+}

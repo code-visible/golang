@@ -4,21 +4,23 @@ import (
 	"errors"
 	"go/token"
 	"io/fs"
+	"os"
 	"path/filepath"
 )
 
 // read-only source map of the project
 type SourceMap struct {
-	path string
-	dirs []SourceDir
-	fs   []SourceFile
-	fset *token.FileSet
+	path   string
+	dirs   []*SourceDir
+	fs     []*SourceFile
+	fset   *token.FileSet
+	dirIdx map[string]int
 }
 
 func NewSourceMap(path string) *SourceMap {
 	sm := &SourceMap{
 		path: path,
-		fs:   make([]SourceFile, 0, 64),
+		fs:   make([]*SourceFile, 0, 64),
 		fset: token.NewFileSet(),
 	}
 
@@ -26,6 +28,8 @@ func NewSourceMap(path string) *SourceMap {
 }
 
 func (sm *SourceMap) Scan() {
+	// TODO
+	_ = os.Chdir(sm.path)
 	sm.walk()
 	sm.parseFiles()
 }
@@ -46,12 +50,13 @@ func (sm *SourceMap) walk() {
 
 		if d.IsDir() {
 			current = len(sm.dirs)
-			sm.dirs = append(sm.dirs, SourceDir{
+			sm.dirs = append(sm.dirs, &SourceDir{
 				Path: relPath,
 			})
 		} else {
-			sm.fs = append(sm.fs, SourceFile{
-				Path: relPath,
+			sm.fs = append(sm.fs, &SourceFile{
+				Path: filepath.Dir(relPath),
+				Name: filepath.Base(relPath),
 				Dir:  current,
 			})
 		}
@@ -73,11 +78,11 @@ func (sm *SourceMap) Path() string {
 	return sm.path
 }
 
-func (sm *SourceMap) Files() []SourceFile {
+func (sm *SourceMap) Files() []*SourceFile {
 	return sm.fs
 }
 
-func (sm *SourceMap) Dirs() []SourceDir {
+func (sm *SourceMap) Dirs() []*SourceDir {
 	return sm.dirs
 }
 

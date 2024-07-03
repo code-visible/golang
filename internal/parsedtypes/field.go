@@ -1,6 +1,7 @@
 package parsedtypes
 
 import (
+	"fmt"
 	"go/ast"
 	"strings"
 )
@@ -50,4 +51,16 @@ func (fs *Fields) Format(seperator string) string {
 		}
 	}
 	return sb.String()
+}
+
+func (fs *Fields) List() []string {
+	result := make([]string, 0, len(*fs))
+	for _, p := range *fs {
+		if p.ID != nil {
+			result = append(result, fmt.Sprintf("%s %s", p.ID.Name, p.Type.String()))
+		} else {
+			result = append(result, p.Type.String())
+		}
+	}
+	return result
 }

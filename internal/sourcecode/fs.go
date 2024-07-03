@@ -4,6 +4,7 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"path/filepath"
 	"strings"
 )
 
@@ -14,6 +15,7 @@ type SourceDir struct {
 
 type SourceFile struct {
 	Path     string
+	Name     string
 	Dir      int
 	AST      *ast.File
 	GoSource bool
@@ -28,7 +30,8 @@ func (sf *SourceFile) Parse2AST(fset *token.FileSet) {
 
 	// TODO: decide whether the comment should be parsed
 	// TODO: handle error
-	parsed, err := parser.ParseFile(fset, sf.Path, nil, parser.ParseComments)
+	p := filepath.Join(sf.Path, sf.Name)
+	parsed, err := parser.ParseFile(fset, p, nil, parser.ParseComments)
 	if err != nil {
 		panic(err)
 	}
@@ -36,9 +39,10 @@ func (sf *SourceFile) Parse2AST(fset *token.FileSet) {
 }
 
 func (sf *SourceFile) checkGo() {
+	p := filepath.Join(sf.Path, sf.Name)
 	// TODO: should we check the content detail of the file?
-	if strings.HasSuffix(sf.Path, ".go") {
-		if strings.HasSuffix(sf.Path, "_test.go") {
+	if strings.HasSuffix(p, ".go") {
+		if strings.HasSuffix(p, "_test.go") {
 			sf.Test = true
 		}
 		sf.GoSource = true

@@ -18,10 +18,10 @@ type Project struct {
 	sm     *sourcecode.SourceMap
 }
 
-func NewProject(path string) *Project {
+func NewProject(gomod string, path string) *Project {
 	p := &Project{
 		Pkgs:   make([]nodes.Pkg, 0, 16),
-		sm:     sourcecode.NewSourceMap(path),
+		sm:     sourcecode.NewSourceMap(gomod, path),
 		pkgIdx: make(map[string]int),
 	}
 

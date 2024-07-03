@@ -1,6 +1,7 @@
 package sourcecode
 
 import (
+	"bytes"
 	"errors"
 	"go/token"
 	"io/fs"
@@ -8,8 +9,11 @@ import (
 	"path/filepath"
 )
 
+var errInvalidModuleName = errors.New("invalid module name")
+
 // read-only source map of the project
 type SourceMap struct {
+	name   string
 	path   string
 	dirs   []*SourceDir
 	fs     []*SourceFile
@@ -17,8 +21,16 @@ type SourceMap struct {
 	dirIdx map[string]int
 }
 
-func NewSourceMap(path string) *SourceMap {
+func NewSourceMap(gomod string, path string) *SourceMap {
+	if gomod == "" {
+		gomod = filepath.Join(path, "go.mod")
+	}
+	moduleName, err := parseModuleName(gomod)
+	if err != nil {
+		panic(err)
+	}
 	sm := &SourceMap{
+		name: moduleName,
 		path: path,
 		fs:   make([]*SourceFile, 0, 64),
 		fset: token.NewFileSet(),
@@ -88,4 +100,21 @@ func (sm *SourceMap) Dirs() []*SourceDir {
 
 func (sm *SourceMap) FileSet() *token.FileSet {
 	return sm.fset
+}
+
+func parseModuleName(gomod string) (string, error) {
+	var moduleName = []byte("module")
+	mod, err := os.ReadFile(gomod)
+	if err != nil {
+		panic(err)
+	}
+	if !bytes.HasPrefix(mod, moduleName) {
+		return "", errInvalidModuleName
+	}
+	mod = mod[len(moduleName)+1:]
+	idx := bytes.IndexByte(mod, '\n')
+	if idx < 0 {
+		return "", errInvalidModuleName
+	}
+	return string(mod[:idx]), nil
 }

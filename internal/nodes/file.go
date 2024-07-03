@@ -19,20 +19,16 @@ type File struct {
 	// Calls     []int  `json:"calls"`
 	// Deps      []int  `json:"deps"`
 
-	sm    *sourcecode.SourceMap
-	idx   int
-	cs    map[string]*Callable
-	as    map[string]*Abstract
-	calls []*callhierarchy.Call
+	sm  *sourcecode.SourceMap
+	idx int
+	pkg *Pkg
 }
 
-func NewSourceFile(sm *sourcecode.SourceMap, idx int) File {
+func NewSourceFile(sm *sourcecode.SourceMap, idx int, pkg *Pkg) File {
 	f := File{
-		sm:    sm,
-		idx:   idx,
-		cs:    make(map[string]*Callable),
-		as:    make(map[string]*Abstract),
-		calls: make([]*callhierarchy.Call, 0, 8),
+		sm:  sm,
+		idx: idx,
+		pkg: pkg,
 	}
 
 	return f
@@ -55,7 +51,7 @@ func (f *File) EnumerateDecls() {
 					a.Pkg = f.Pkg
 					a.Pos = f.sm.FileSet().Position(a.ident.Pos()).String()
 					a.Complete()
-					f.as[a.Name] = a
+					f.pkg.as[a.Name] = a
 				}
 			}
 		case *ast.FuncDecl:
@@ -64,25 +60,9 @@ func (f *File) EnumerateDecls() {
 			c.File = f.idx
 			c.Pkg = f.Pkg
 			c.Pos = f.sm.FileSet().Position(c.ident.Pos()).String()
-			f.cs[c.Name] = c
+			f.pkg.cs[c.Name] = c
 		}
 	}
-}
-
-func (f *File) Callables() []*Callable {
-	cs := make([]*Callable, 0, len(f.cs))
-	for _, c := range f.cs {
-		cs = append(cs, c)
-	}
-	return cs
-}
-
-func (f *File) Abstracts() []*Abstract {
-	as := make([]*Abstract, 0, len(f.as))
-	for _, a := range f.as {
-		as = append(as, a)
-	}
-	return as
 }
 
 func (f *File) SearchCalls() {
@@ -100,7 +80,7 @@ func (f *File) SearchCalls() {
 		switch fn := call.Fun.(type) {
 		case *ast.Ident:
 			c := callhierarchy.NewCall(fn.Pos(), "", fn.Name, nil)
-			f.calls = append(f.calls, c)
+			f.pkg.calls = append(f.pkg.calls, c)
 		case *ast.SelectorExpr:
 			scope := "unknown"
 			sel := fn.Sel.Name
@@ -125,19 +105,15 @@ func (f *File) SearchCalls() {
 				}
 			}
 			c := callhierarchy.NewCall(fn.Pos(), scope, sel, typ)
-			f.calls = append(f.calls, c)
+			f.pkg.calls = append(f.pkg.calls, c)
 			// ignore anonymous function
 			// case *ast.FuncLit:
 		}
 		return true
 	})
 
-	for _, c := range f.calls {
+	for _, c := range f.pkg.calls {
 		c.File = f.idx
 		c.Complete()
 	}
-}
-
-func (f *File) Calls() []*callhierarchy.Call {
-	return f.calls
 }

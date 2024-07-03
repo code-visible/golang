@@ -54,10 +54,11 @@ func (p *Project) createPkgs() {
 // create files from source
 func (p *Project) createFiles() {
 	for idx, f := range p.sm.Files() {
-		file := nodes.NewSourceFile(p.sm, idx)
+		pkgIdx := p.pkgIdx[f.Path]
+		file := nodes.NewSourceFile(p.sm, idx, &p.Pkgs[pkgIdx])
 		file.Path = f.Path
 		file.Name = f.Name
-		file.Pkg = p.pkgIdx[f.Path]
+		file.Pkg = pkgIdx
 		p.Files = append(p.Files, file)
 	}
 }
@@ -66,8 +67,11 @@ func (p *Project) createFiles() {
 func (p *Project) retriveNodes() {
 	for _, f := range p.Files {
 		f.EnumerateDecls()
-		p.Callables = append(p.Callables, f.Callables()...)
-		p.Abstracts = append(p.Abstracts, f.Abstracts()...)
+	}
+
+	for _, pkg := range p.Pkgs {
+		p.Callables = append(p.Callables, pkg.Callables()...)
+		p.Abstracts = append(p.Abstracts, pkg.Abstracts()...)
 	}
 }
 
@@ -75,6 +79,9 @@ func (p *Project) retriveNodes() {
 func (p *Project) retriveCalls() {
 	for _, f := range p.Files {
 		f.SearchCalls()
-		p.Calls = append(p.Calls, f.Calls()...)
+	}
+
+	for _, pkg := range p.Pkgs {
+		p.Calls = append(p.Calls, pkg.Calls()...)
 	}
 }

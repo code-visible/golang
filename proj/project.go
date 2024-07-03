@@ -13,13 +13,16 @@ type Project struct {
 	Callables []*nodes.Callable     `json:"callables"`
 	Calls     []*callhierarchy.Call `json:"calls"`
 
-	sm *sourcecode.SourceMap
+	// directory -> pkg
+	pkgIdx map[string]int
+	sm     *sourcecode.SourceMap
 }
 
 func NewProject(path string) *Project {
 	p := &Project{
-		Pkgs: make([]nodes.Pkg, 0, 16),
-		sm:   sourcecode.NewSourceMap(path),
+		Pkgs:   make([]nodes.Pkg, 0, 16),
+		sm:     sourcecode.NewSourceMap(path),
+		pkgIdx: make(map[string]int),
 	}
 
 	return p
@@ -41,6 +44,7 @@ func (p *Project) Parse() {
 // create pkgs from source
 func (p *Project) createPkgs() {
 	for idx, dir := range p.sm.Dirs() {
+		p.pkgIdx[dir.Path] = len(p.Pkgs)
 		pkg := nodes.NewSourcePkg(p.sm, idx)
 		pkg.Path = dir.Path
 		p.Pkgs = append(p.Pkgs, pkg)
@@ -52,6 +56,8 @@ func (p *Project) createFiles() {
 	for idx, f := range p.sm.Files() {
 		file := nodes.NewSourceFile(p.sm, idx)
 		file.Path = f.Path
+		file.Name = f.Name
+		file.Pkg = p.pkgIdx[f.Path]
 		p.Files = append(p.Files, file)
 	}
 }

@@ -10,8 +10,8 @@ type Abstract struct {
 	ID      string   `json:"id"`
 	Pos     string   `json:"pos"`
 	Name    string   `json:"name"`
-	File    string   `json:"file"`
-	Pkg     string   `json:"pkg"`
+	File    int      `json:"file"`
+	Pkg     int      `json:"pkg"`
 	Comment string   `json:"comment"`
 	Fields  []string `json:"fields"`
 
@@ -31,4 +31,8 @@ func NewAbstract(ident *ast.Ident, strtTyp *ast.StructType) *Abstract {
 	}
 
 	return a
+}
+
+func (a *Abstract) Complete() {
+	a.Fields = a.fields.List()
 }

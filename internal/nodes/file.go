@@ -13,7 +13,7 @@ type File struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
 	Path string `json:"path"`
-	Pkg  *Pkg   `json:"pkg"`
+	Pkg  int    `json:"pkg"`
 	// Callables []int  `json:"callables"`
 	// Abstracts []int  `json:"abstracts"`
 	// Calls     []int  `json:"calls"`
@@ -27,13 +27,15 @@ type File struct {
 }
 
 func NewSourceFile(sm *sourcecode.SourceMap, idx int) File {
-	return File{
+	f := File{
 		sm:    sm,
 		idx:   idx,
 		cs:    make(map[string]*Callable),
 		as:    make(map[string]*Abstract),
 		calls: make([]*callhierarchy.Call, 0, 8),
 	}
+
+	return f
 }
 
 func (f *File) EnumerateDecls() {
@@ -49,11 +51,19 @@ func (f *File) EnumerateDecls() {
 				// ignore interface, type rename
 				if strtType, ok := typSpec.Type.(*ast.StructType); ok {
 					a := NewAbstract(typSpec.Name, strtType)
+					a.File = f.idx
+					a.Pkg = f.Pkg
+					a.Pos = f.sm.FileSet().Position(a.ident.Pos()).String()
+					a.Complete()
 					f.as[a.Name] = a
 				}
 			}
 		case *ast.FuncDecl:
 			c := NewCallable(decl)
+			c.Complete()
+			c.File = f.idx
+			c.Pkg = f.Pkg
+			c.Pos = f.sm.FileSet().Position(c.ident.Pos()).String()
 			f.cs[c.Name] = c
 		}
 	}

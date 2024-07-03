@@ -3,10 +3,8 @@ package nodes
 import "github.com/code-visible/golang/internal/sourcecode"
 
 type Pkg struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	Path  string `json:"path"`
-	Files []int  `json:"files"`
+	ID   string `json:"id"`
+	Path string `json:"path"`
 
 	sm  *sourcecode.SourceMap
 	idx int

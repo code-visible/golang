@@ -25,8 +25,8 @@ type Callable struct {
 	Pos         string   `json:"pos"`
 	Name        string   `json:"name"`
 	Abstract    string   `json:"abstract"`
-	File        string   `json:"file"`
-	Pkg         string   `json:"pkg"`
+	File        int      `json:"file"`
+	Pkg         int      `json:"pkg"`
 	Typ         string   `json:"typ"`
 	Comment     string   `json:"comment"`
 	Syscalls    []string `json:"syscalls"`
@@ -69,5 +69,15 @@ func NewCallable(decl *ast.FuncDecl) *Callable {
 		}
 	}
 
+	// if len(decl.Recv.List) > 0 {
+	// 		// c.recv.ID
+	// 		// Parse(decl.Recv.List[0])
+	// }
+
 	return c
+}
+
+func (c *Callable) Complete() {
+	c.Parameters = c.params.List()
+	c.Results = c.results.List()
 }

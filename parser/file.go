@@ -1,13 +1,31 @@
-package nodes
+package parser
 
 import (
 	"go/ast"
 	"go/token"
+	"strings"
 
-	"github.com/code-visible/golang/internal/callhierarchy"
-	"github.com/code-visible/golang/internal/parsedtypes"
-	"github.com/code-visible/golang/internal/sourcecode"
+	"github.com/code-visible/golang/parser/parsedtypes"
 )
+
+type dep struct {
+	std bool
+	pkg *Pkg
+}
+
+func newDep(imp *ast.ImportSpec, deps map[string]*Pkg) dep {
+	importPath := strings.Trim(imp.Path.Value, `"`)
+	if isStd(importPath) {
+		return dep{
+			std: true,
+			pkg: nil,
+		}
+	}
+	return dep{
+		std: false,
+		pkg: deps[importPath],
+	}
+}
 
 type File struct {
 	ID   string `json:"id"`
@@ -19,19 +37,33 @@ type File struct {
 	// Calls     []int  `json:"calls"`
 	// Deps      []int  `json:"deps"`
 
-	sm  *sourcecode.SourceMap
-	idx int
-	pkg *Pkg
+	sm   *SourceMap
+	idx  int
+	pkg  *Pkg
+	deps map[string]dep
 }
 
-func NewSourceFile(sm *sourcecode.SourceMap, idx int, pkg *Pkg) File {
+func NewSourceFile(sm *SourceMap, idx int, pkg *Pkg) File {
 	f := File{
-		sm:  sm,
-		idx: idx,
-		pkg: pkg,
+		sm:   sm,
+		idx:  idx,
+		pkg:  pkg,
+		deps: make(map[string]dep),
 	}
 
 	return f
+}
+
+func (f *File) BuildDeps(deps map[string]*Pkg) {
+	sf := f.sm.Files()[f.idx]
+	if sf.AST == nil {
+		return
+	}
+	for _, imp := range sf.AST.Imports {
+		name := retriveImportName(imp)
+		d := newDep(imp, deps)
+		f.deps[name] = d
+	}
 }
 
 func (f *File) EnumerateDecls() {
@@ -79,11 +111,14 @@ func (f *File) SearchCalls() {
 
 		switch fn := call.Fun.(type) {
 		case *ast.Ident:
-			c := callhierarchy.NewCall(fn.Pos(), "", fn.Name, nil)
+			c := NewCall(fn.Pos(), "", fn.Name, nil)
+			// callee := f.pkg.CallableDefinition(fn.Name)
+			// c.Callee = callee.ID
 			f.pkg.calls = append(f.pkg.calls, c)
 		case *ast.SelectorExpr:
 			scope := "unknown"
 			sel := fn.Sel.Name
+			callee := -1
 			var typ *parsedtypes.Type = nil
 			if prefixIdent, ok := fn.X.(*ast.Ident); ok {
 				scope = prefixIdent.Name
@@ -104,7 +139,23 @@ func (f *File) SearchCalls() {
 					}
 				}
 			}
-			c := callhierarchy.NewCall(fn.Pos(), scope, sel, typ)
+			// if typ != nil {
+			// 	if typ.Pkg != "" {
+			// 		if dep, ok := f.deps[typ.Pkg]; ok && !dep.std {
+			// 			calleeDef := dep.pkg.CallableDefinition(sel)
+			// 			if calleeDef != nil {
+			// 				callee = calleeDef.File
+			// 			}
+			// 		}
+			// 	} else {
+			// 		calleeDef := f.pkg.CallableDefinition(sel)
+			// 		if calleeDef != nil {
+			// 			callee = calleeDef.File
+			// 		}
+			// 	}
+			// }
+			c := NewCall(fn.Pos(), scope, sel, typ)
+			c.Callee = callee
 			f.pkg.calls = append(f.pkg.calls, c)
 			// ignore anonymous function
 			// case *ast.FuncLit:
@@ -116,4 +167,21 @@ func (f *File) SearchCalls() {
 		c.File = f.idx
 		c.Complete()
 	}
+}
+
+func retriveImportName(imp *ast.ImportSpec) string {
+	importPath := strings.Trim(imp.Path.Value, `"`)
+	if imp.Name != nil {
+		return imp.Name.Name
+	}
+	idx := strings.LastIndex(imp.Path.Value, "/")
+	if idx < 0 {
+		return importPath
+	}
+	return importPath[idx:]
+}
+
+// TODO: better impl
+func isStd(importPath string) bool {
+	return !strings.Contains(importPath, "/")
 }

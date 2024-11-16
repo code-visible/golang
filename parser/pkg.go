@@ -1,28 +1,23 @@
-package nodes
-
-import (
-	"github.com/code-visible/golang/internal/callhierarchy"
-	"github.com/code-visible/golang/internal/sourcecode"
-)
+package parser
 
 type Pkg struct {
 	ID   string `json:"id"`
 	Path string `json:"path"`
 
-	sm    *sourcecode.SourceMap
+	sm    *SourceMap
 	idx   int
 	cs    map[string]*Callable
 	as    map[string]*Abstract
-	calls []*callhierarchy.Call
+	calls []*Call
 }
 
-func NewSourcePkg(sm *sourcecode.SourceMap, idx int) Pkg {
+func NewSourcePkg(sm *SourceMap, idx int) Pkg {
 	return Pkg{
 		sm:    sm,
 		idx:   idx,
 		cs:    make(map[string]*Callable),
 		as:    make(map[string]*Abstract),
-		calls: make([]*callhierarchy.Call, 0, 8),
+		calls: make([]*Call, 0, 8),
 	}
 }
 
@@ -42,6 +37,14 @@ func (p *Pkg) Abstracts() []*Abstract {
 	return as
 }
 
-func (p *Pkg) Calls() []*callhierarchy.Call {
+func (p *Pkg) Calls() []*Call {
 	return p.calls
+}
+
+func (p *Pkg) CallableDefinition(name string) *Callable {
+	return p.cs[name]
+}
+
+func (p *Pkg) AbstractDefinition(name string) *Abstract {
+	return p.as[name]
 }

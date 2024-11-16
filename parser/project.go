@@ -1,28 +1,33 @@
-package proj
+package parser
 
 import (
-	"github.com/code-visible/golang/internal/callhierarchy"
-	"github.com/code-visible/golang/internal/nodes"
-	"github.com/code-visible/golang/internal/sourcecode"
+	"fmt"
+	"os"
 )
 
 type Project struct {
-	Pkgs      []nodes.Pkg           `json:"pkgs"`
-	Files     []nodes.File          `json:"files"`
-	Abstracts []*nodes.Abstract     `json:"abstracts"`
-	Callables []*nodes.Callable     `json:"callables"`
-	Calls     []*callhierarchy.Call `json:"calls"`
+	Pkgs      []Pkg       `json:"pkgs"`
+	Files     []File      `json:"files"`
+	Abstracts []*Abstract `json:"abstracts"`
+	Callables []*Callable `json:"callables"`
+	Calls     []*Call     `json:"calls"`
 
 	// directory -> pkg
 	pkgIdx map[string]int
-	sm     *sourcecode.SourceMap
+	sm     *SourceMap
+	deps   map[string]*Pkg
 }
 
-func NewProject(gomod string, path string) *Project {
+func NewProject(project, directory string) *Project {
+	err := os.Chdir(project)
+	if err != nil {
+		panic(err)
+	}
 	p := &Project{
-		Pkgs:   make([]nodes.Pkg, 0, 16),
-		sm:     sourcecode.NewSourceMap(gomod, path),
+		Pkgs:   make([]Pkg, 0, 16),
+		sm:     NewSourceMap(project, directory),
 		pkgIdx: make(map[string]int),
+		deps:   make(map[string]*Pkg),
 	}
 
 	return p
@@ -45,9 +50,10 @@ func (p *Project) Parse() {
 func (p *Project) createPkgs() {
 	for idx, dir := range p.sm.Dirs() {
 		p.pkgIdx[dir.Path] = len(p.Pkgs)
-		pkg := nodes.NewSourcePkg(p.sm, idx)
+		pkg := NewSourcePkg(p.sm, idx)
 		pkg.Path = dir.Path
 		p.Pkgs = append(p.Pkgs, pkg)
+		p.deps[fmt.Sprintf("%s/%s", p.sm.Module(), pkg.Path)] = &pkg
 	}
 }
 
@@ -55,7 +61,7 @@ func (p *Project) createPkgs() {
 func (p *Project) createFiles() {
 	for idx, f := range p.sm.Files() {
 		pkgIdx := p.pkgIdx[f.Path]
-		file := nodes.NewSourceFile(p.sm, idx, &p.Pkgs[pkgIdx])
+		file := NewSourceFile(p.sm, idx, &p.Pkgs[pkgIdx])
 		file.Path = f.Path
 		file.Name = f.Name
 		file.Pkg = pkgIdx
@@ -78,6 +84,7 @@ func (p *Project) retriveNodes() {
 // retrive the calls
 func (p *Project) retriveCalls() {
 	for _, f := range p.Files {
+		f.BuildDeps(p.deps)
 		f.SearchCalls()
 	}
 

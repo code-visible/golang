@@ -1,10 +1,10 @@
-package callhierarchy
+package parser
 
 import (
 	"fmt"
 	"go/token"
 
-	"github.com/code-visible/golang/internal/parsedtypes"
+	"github.com/code-visible/golang/parser/parsedtypes"
 )
 
 type Call struct {

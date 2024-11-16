@@ -1,12 +1,10 @@
-package nodes
+package parser
 
 import (
 	"go/ast"
 	"go/token"
 
-	"github.com/code-visible/golang/internal/callhierarchy"
-	"github.com/code-visible/golang/internal/parsedtypes"
-	"github.com/code-visible/golang/internal/sourcecode"
+	"github.com/code-visible/golang/parser/parsedtypes"
 )
 
 type File struct {
@@ -19,12 +17,12 @@ type File struct {
 	// Calls     []int  `json:"calls"`
 	// Deps      []int  `json:"deps"`
 
-	sm  *sourcecode.SourceMap
+	sm  *SourceMap
 	idx int
 	pkg *Pkg
 }
 
-func NewSourceFile(sm *sourcecode.SourceMap, idx int, pkg *Pkg) File {
+func NewSourceFile(sm *SourceMap, idx int, pkg *Pkg) File {
 	f := File{
 		sm:  sm,
 		idx: idx,
@@ -79,7 +77,7 @@ func (f *File) SearchCalls() {
 
 		switch fn := call.Fun.(type) {
 		case *ast.Ident:
-			c := callhierarchy.NewCall(fn.Pos(), "", fn.Name, nil)
+			c := NewCall(fn.Pos(), "", fn.Name, nil)
 			f.pkg.calls = append(f.pkg.calls, c)
 		case *ast.SelectorExpr:
 			scope := "unknown"
@@ -104,7 +102,7 @@ func (f *File) SearchCalls() {
 					}
 				}
 			}
-			c := callhierarchy.NewCall(fn.Pos(), scope, sel, typ)
+			c := NewCall(fn.Pos(), scope, sel, typ)
 			f.pkg.calls = append(f.pkg.calls, c)
 			// ignore anonymous function
 			// case *ast.FuncLit:

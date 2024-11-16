@@ -1,9 +1,9 @@
-package nodes
+package parser
 
 import (
 	"go/ast"
 
-	"github.com/code-visible/golang/internal/parsedtypes"
+	"github.com/code-visible/golang/parser/parsedtypes"
 )
 
 // possible concurrent operation for performance consideration

@@ -40,3 +40,11 @@ func (p *Pkg) Abstracts() []*Abstract {
 func (p *Pkg) Calls() []*Call {
 	return p.calls
 }
+
+func (p *Pkg) CallableDefinition(name string) *Callable {
+	return p.cs[name]
+}
+
+func (p *Pkg) AbstractDefinition(name string) *Abstract {
+	return p.as[name]
+}

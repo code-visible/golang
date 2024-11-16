@@ -1,5 +1,10 @@
 package parser
 
+import (
+	"fmt"
+	"os"
+)
+
 type Project struct {
 	Pkgs      []Pkg       `json:"pkgs"`
 	Files     []File      `json:"files"`
@@ -10,13 +15,19 @@ type Project struct {
 	// directory -> pkg
 	pkgIdx map[string]int
 	sm     *SourceMap
+	deps   map[string]*Pkg
 }
 
-func NewProject(gomod string, path string) *Project {
+func NewProject(project, directory string) *Project {
+	err := os.Chdir(project)
+	if err != nil {
+		panic(err)
+	}
 	p := &Project{
 		Pkgs:   make([]Pkg, 0, 16),
-		sm:     NewSourceMap(gomod, path),
+		sm:     NewSourceMap(project, directory),
 		pkgIdx: make(map[string]int),
+		deps:   make(map[string]*Pkg),
 	}
 
 	return p
@@ -42,6 +53,7 @@ func (p *Project) createPkgs() {
 		pkg := NewSourcePkg(p.sm, idx)
 		pkg.Path = dir.Path
 		p.Pkgs = append(p.Pkgs, pkg)
+		p.deps[fmt.Sprintf("%s/%s", p.sm.Module(), pkg.Path)] = &pkg
 	}
 }
 
@@ -72,6 +84,7 @@ func (p *Project) retriveNodes() {
 // retrive the calls
 func (p *Project) retriveCalls() {
 	for _, f := range p.Files {
+		f.BuildDeps(p.deps)
 		f.SearchCalls()
 	}
 

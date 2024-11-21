@@ -8,89 +8,71 @@ import (
 	"github.com/code-visible/golang/parser/parsedtypes"
 )
 
-type dep struct {
-	std bool
-	pkg *Pkg
-}
-
-func newDep(imp *ast.ImportSpec, deps map[string]*Pkg) dep {
-	importPath := strings.Trim(imp.Path.Value, `"`)
-	if isStd(importPath) {
-		return dep{
-			std: true,
-			pkg: nil,
-		}
-	}
-	return dep{
-		std: false,
-		pkg: deps[importPath],
-	}
-}
-
 type File struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
 	Path string `json:"path"`
-	Pkg  int    `json:"pkg"`
+	Pkg  string `json:"pkg"`
 	// Callables []int  `json:"callables"`
 	// Abstracts []int  `json:"abstracts"`
 	// Calls     []int  `json:"calls"`
 	// Deps      []int  `json:"deps"`
 
 	sm   *SourceMap
-	idx  int
 	pkg  *Pkg
-	deps map[string]dep
+	deps map[string]*Dep
+	sf   *SourceFile
 }
 
-func NewSourceFile(sm *SourceMap, idx int, pkg *Pkg) File {
+func NewSourceFile(path string, name string, sm *SourceMap, sf *SourceFile, pkg *Pkg) File {
 	f := File{
+		Path: path,
+		Name: name,
 		sm:   sm,
-		idx:  idx,
+		sf:   sf,
 		pkg:  pkg,
-		deps: make(map[string]dep),
+		deps: make(map[string]*Dep),
 	}
 
 	return f
 }
 
-func (f *File) BuildDeps(deps map[string]*Pkg) {
-	sf := f.sm.Files()[f.idx]
-	if sf.AST == nil {
+func (f *File) BuildDeps() {
+	if f.sf.AST == nil {
 		return
 	}
-	for _, imp := range sf.AST.Imports {
+	for _, imp := range f.sf.AST.Imports {
+		importPath := strings.Trim(imp.Path.Value, `"`)
+		d, ok := f.pkg.p.deps[importPath]
+		if !ok {
+			d = NewDep(importPath, imp)
+			f.pkg.p.deps[importPath] = d
+		}
 		name := retriveImportName(imp)
-		d := newDep(imp, deps)
 		f.deps[name] = d
 	}
 }
 
 func (f *File) EnumerateDecls() {
-	sf := f.sm.Files()[f.idx]
-	if sf.AST == nil {
+	if f.sf.AST == nil {
 		return
 	}
-	for _, d := range sf.AST.Decls {
+	for _, d := range f.sf.AST.Decls {
 		switch decl := d.(type) {
 		case *ast.GenDecl:
 			if decl.Tok == token.TYPE && len(decl.Specs) > 0 {
 				typSpec := decl.Specs[0].(*ast.TypeSpec)
 				// ignore interface, type rename
 				if strtType, ok := typSpec.Type.(*ast.StructType); ok {
-					a := NewAbstract(typSpec.Name, strtType)
-					a.File = f.idx
-					a.Pkg = f.Pkg
+					a := NewAbstract(typSpec.Name, strtType, f)
 					a.Pos = f.sm.FileSet().Position(a.ident.Pos()).String()
 					a.Complete()
 					f.pkg.as[a.Name] = a
 				}
 			}
 		case *ast.FuncDecl:
-			c := NewCallable(decl)
+			c := NewCallable(decl, f)
 			c.Complete()
-			c.File = f.idx
-			c.Pkg = f.Pkg
 			c.Pos = f.sm.FileSet().Position(c.ident.Pos()).String()
 			f.pkg.cs[c.Name] = c
 		}
@@ -98,11 +80,10 @@ func (f *File) EnumerateDecls() {
 }
 
 func (f *File) SearchCalls() {
-	sf := f.sm.Files()[f.idx]
-	if sf.AST == nil {
+	if f.sf.AST == nil {
 		return
 	}
-	ast.Inspect(sf.AST, func(n ast.Node) bool {
+	ast.Inspect(f.sf.AST, func(n ast.Node) bool {
 		call, ok := n.(*ast.CallExpr)
 		// the current node is not a call expr.
 		if !ok {
@@ -118,7 +99,7 @@ func (f *File) SearchCalls() {
 		case *ast.SelectorExpr:
 			scope := "unknown"
 			sel := fn.Sel.Name
-			callee := -1
+			// callee := -1
 			var typ *parsedtypes.Type = nil
 			if prefixIdent, ok := fn.X.(*ast.Ident); ok {
 				scope = prefixIdent.Name
@@ -155,7 +136,7 @@ func (f *File) SearchCalls() {
 			// 	}
 			// }
 			c := NewCall(fn.Pos(), scope, sel, typ)
-			c.Callee = callee
+			// c.Callee = callee
 			f.pkg.calls = append(f.pkg.calls, c)
 			// ignore anonymous function
 			// case *ast.FuncLit:
@@ -164,7 +145,6 @@ func (f *File) SearchCalls() {
 	})
 
 	for _, c := range f.pkg.calls {
-		c.File = f.idx
 		c.Complete()
 	}
 }

@@ -2,22 +2,26 @@ package parser
 
 type Pkg struct {
 	ID   string `json:"id"`
+	Name string `json:"name"`
 	Path string `json:"path"`
 
 	sm    *SourceMap
-	idx   int
 	cs    map[string]*Callable
 	as    map[string]*Abstract
 	calls []*Call
+	sd    *SourceDir
+	p     *Project
 }
 
-func NewSourcePkg(sm *SourceMap, idx int) Pkg {
+func NewSourcePkg(path string, name string, sm *SourceMap, sd *SourceDir, p *Project) Pkg {
 	return Pkg{
+		Path:  path,
 		sm:    sm,
-		idx:   idx,
 		cs:    make(map[string]*Callable),
 		as:    make(map[string]*Abstract),
 		calls: make([]*Call, 0, 8),
+		sd:    sd,
+		p:     p,
 	}
 }
 

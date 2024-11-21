@@ -17,13 +17,15 @@ type Abstract struct {
 
 	ident  *ast.Ident
 	fields parsedtypes.Fields
+	file   *File
 }
 
-func NewAbstract(ident *ast.Ident, strtTyp *ast.StructType) *Abstract {
+func NewAbstract(ident *ast.Ident, strtTyp *ast.StructType, file *File) *Abstract {
 	a := &Abstract{
 		Name:   ident.Name,
 		ident:  ident,
 		fields: make(parsedtypes.Fields, 0, len(strtTyp.Fields.List)),
+		file:   file,
 	}
 
 	for _, field := range strtTyp.Fields.List {

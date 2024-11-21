@@ -25,8 +25,8 @@ type Callable struct {
 	Pos         string   `json:"pos"`
 	Name        string   `json:"name"`
 	Abstract    string   `json:"abstract"`
-	File        int      `json:"file"`
-	Pkg         int      `json:"pkg"`
+	File        string   `json:"file"`
+	Pkg         string   `json:"pkg"`
 	Typ         string   `json:"typ"`
 	Comment     string   `json:"comment"`
 	Syscalls    []string `json:"syscalls"`
@@ -41,9 +41,10 @@ type Callable struct {
 	recv    parsedtypes.Field
 	params  parsedtypes.Fields
 	results parsedtypes.Fields
+	file    *File
 }
 
-func NewCallable(decl *ast.FuncDecl) *Callable {
+func NewCallable(decl *ast.FuncDecl, file *File) *Callable {
 	pCnt := 0
 	rCnt := 0
 	if decl.Type.Params != nil {
@@ -57,6 +58,7 @@ func NewCallable(decl *ast.FuncDecl) *Callable {
 		ident:   decl.Name,
 		params:  make(parsedtypes.Fields, 0, pCnt),
 		results: make(parsedtypes.Fields, 0, rCnt),
+		file:    file,
 	}
 	if pCnt > 0 {
 		for _, pf := range decl.Type.Params.List {

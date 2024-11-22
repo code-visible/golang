@@ -8,6 +8,7 @@ import (
 type Dep struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
+	Typ  string `json:"type"`
 
 	std bool
 	pkg *Pkg

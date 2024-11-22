@@ -98,6 +98,15 @@ func (p *Project) buildDeps() {
 	for _, f := range p.Files {
 		f.BuildDeps()
 	}
+
+	for _, v := range p.deps {
+		if v.std {
+			v.Typ = "std"
+		} else {
+			v.Typ = "pkg"
+		}
+		p.Deps = append(p.Deps, v)
+	}
 }
 
 // retrive the calls

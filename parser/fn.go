@@ -68,7 +68,11 @@ func NewCallable(decl *ast.FuncDecl, file *File) *Callable {
 }
 
 func (c *Callable) SetupID() {
-	c.ID = fmt.Sprintf("%s/%s:%s", c.file.Path, c.file.Name, c.Name)
+	c.ID = c.LookupName()
+}
+
+func (c *Callable) LookupName() string {
+	return fmt.Sprintf("%s:%s", c.file.LookupName(), c.Name)
 }
 
 func (c *Callable) Complete() {

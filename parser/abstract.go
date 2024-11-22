@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"fmt"
 	"go/ast"
 
 	"github.com/code-visible/golang/parser/parsedtypes"
@@ -10,8 +11,8 @@ type Abstract struct {
 	ID      string   `json:"id"`
 	Pos     string   `json:"pos"`
 	Name    string   `json:"name"`
-	File    int      `json:"file"`
-	Pkg     int      `json:"pkg"`
+	File    string   `json:"file"`
+	Pkg     string   `json:"pkg"`
 	Comment string   `json:"comment"`
 	Fields  []string `json:"fields"`
 
@@ -36,7 +37,11 @@ func NewAbstract(ident *ast.Ident, strtTyp *ast.StructType, file *File) *Abstrac
 }
 
 func (a *Abstract) SetupID() {
-	a.ID = a.Pos
+	a.ID = a.LookupName()
+}
+
+func (a *Abstract) LookupName() string {
+	return fmt.Sprintf("%s:%s", a.file.LookupName(), a.Name)
 }
 
 func (a *Abstract) Complete() {

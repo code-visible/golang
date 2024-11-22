@@ -34,3 +34,7 @@ func NewDep(name string, imp *ast.ImportSpec) *Dep {
 		std:  false,
 	}
 }
+
+func (d *Dep) SetupID() {
+	d.ID = d.Name
+}

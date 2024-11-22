@@ -35,6 +35,14 @@ func NewCall(pos token.Pos, scope string, selector string, typ *parsedtypes.Type
 	}
 }
 
+func (c *Call) SetupID() {
+	c.ID = c.LookupName()
+}
+
+func (c *Call) LookupName() string {
+	return fmt.Sprintf("%s:%s-%s", c.file.LookupName(), c.caller, c.Signature)
+}
+
 func (c *Call) Complete() {
 	if c.typ != nil {
 		c.Signature = fmt.Sprintf("(%s).%s()", c.typ, c.selector)

@@ -41,7 +41,11 @@ func NewSourceFile(path string, name string, sm *SourceMap, sf *SourceFile, pkg 
 }
 
 func (f *File) SetupID() {
-	f.ID = fmt.Sprintf("%s/%s", f.Path, f.Name)
+	f.ID = f.LookupName()
+}
+
+func (f *File) LookupName() string {
+	return fmt.Sprintf("%s/%s", f.pkg.Name, f.Name)
 }
 
 func (f *File) BuildDeps() {

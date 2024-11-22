@@ -52,7 +52,7 @@ func (p *Project) Parse() {
 	p.retriveNodes()
 	p.buildDeps()
 	p.retriveCalls()
-	p.attachID()
+	p.injectFields()
 	p.connect()
 }
 
@@ -110,19 +110,38 @@ func (p *Project) retriveCalls() {
 	}
 }
 
-func (p *Project) attachID() {
+func (p *Project) injectFields() {
 	for _, v := range p.Pkgs {
 		v.SetupID()
 	}
 
 	for _, v := range p.Files {
+		v.Pkg = v.pkg.ID
 		v.SetupID()
 	}
 
 	for _, v := range p.Callables {
+		v.File = v.file.ID
+		v.Pkg = v.file.pkg.ID
+		v.SetupID()
+	}
+
+	for _, v := range p.Abstracts {
+		v.File = v.file.ID
+		v.Pkg = v.file.pkg.ID
+		v.SetupID()
+	}
+
+	for _, v := range p.Calls {
+		v.File = v.file.ID
+		v.SetupID()
+	}
+
+	for _, v := range p.Deps {
 		v.SetupID()
 	}
 }
+
 func (p *Project) connect() {
 	for _, c := range p.Calls {
 		caller := c.file.LookupCallable(c.caller)
@@ -134,7 +153,7 @@ func (p *Project) connect() {
 			selector = fmt.Sprintf("%s.%s", c.typ.Key, c.selector)
 		}
 		if c.scope == "" {
-			callee := c.file.LookupCallable(selector)
+			callee := c.file.pkg.LookupCallable(selector)
 			if callee != nil {
 				c.Callee = callee.ID
 			}
@@ -142,6 +161,7 @@ func (p *Project) connect() {
 		}
 		dep := c.file.LookupDepByScope(c.scope)
 		if dep != nil {
+			c.Dep = dep.Name
 			if dep.std || dep.pkg == nil {
 				continue
 			}

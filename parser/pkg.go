@@ -1,5 +1,7 @@
 package parser
 
+import "fmt"
+
 type Pkg struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
@@ -13,8 +15,8 @@ type Pkg struct {
 	p     *Project
 }
 
-func NewSourcePkg(path string, name string, sm *SourceMap, sd *SourceDir, p *Project) Pkg {
-	return Pkg{
+func NewSourcePkg(path string, name string, sm *SourceMap, sd *SourceDir, p *Project) *Pkg {
+	return &Pkg{
 		Path:  path,
 		sm:    sm,
 		cs:    make(map[string]*Callable),
@@ -23,6 +25,10 @@ func NewSourcePkg(path string, name string, sm *SourceMap, sd *SourceDir, p *Pro
 		sd:    sd,
 		p:     p,
 	}
+}
+
+func (p *Pkg) SetupID() {
+	p.ID = fmt.Sprintf("%s/%s", p.Path, p.Name)
 }
 
 func (p *Pkg) Callables() []*Callable {
@@ -45,10 +51,10 @@ func (p *Pkg) Calls() []*Call {
 	return p.calls
 }
 
-func (p *Pkg) CallableDefinition(name string) *Callable {
+func (p *Pkg) LookupCallable(name string) *Callable {
 	return p.cs[name]
 }
 
-func (p *Pkg) AbstractDefinition(name string) *Abstract {
+func (p *Pkg) LookupAbstract(name string) *Abstract {
 	return p.as[name]
 }

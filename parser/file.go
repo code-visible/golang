@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"fmt"
 	"go/ast"
 	"go/token"
 	"strings"
@@ -22,19 +23,25 @@ type File struct {
 	pkg  *Pkg
 	deps map[string]*Dep
 	sf   *SourceFile
+	as   map[string]*Abstract
+	cs   map[string]*Callable
 }
 
-func NewSourceFile(path string, name string, sm *SourceMap, sf *SourceFile, pkg *Pkg) File {
-	f := File{
+func NewSourceFile(path string, name string, sm *SourceMap, sf *SourceFile, pkg *Pkg) *File {
+	return &File{
 		Path: path,
 		Name: name,
 		sm:   sm,
 		sf:   sf,
 		pkg:  pkg,
 		deps: make(map[string]*Dep),
+		cs:   make(map[string]*Callable),
+		as:   make(map[string]*Abstract),
 	}
+}
 
-	return f
+func (f *File) SetupID() {
+	f.ID = fmt.Sprintf("%s/%s", f.Path, f.Name)
 }
 
 func (f *File) BuildDeps() {
@@ -67,14 +74,21 @@ func (f *File) EnumerateDecls() {
 					a := NewAbstract(typSpec.Name, strtType, f)
 					a.Pos = f.sm.FileSet().Position(a.ident.Pos()).String()
 					a.Complete()
+					f.as[a.Name] = a
 					f.pkg.as[a.Name] = a
 				}
 			}
 		case *ast.FuncDecl:
 			c := NewCallable(decl, f)
-			c.Complete()
 			c.Pos = f.sm.FileSet().Position(c.ident.Pos()).String()
-			f.pkg.cs[c.Name] = c
+			c.Complete()
+			fnID := c.Name
+			if c.Method {
+				c.Abstract = c.recv.Type.Key
+				fnID = fmt.Sprintf("%s.%s", c.Abstract, c.Name)
+			}
+			f.cs[fnID] = c
+			f.pkg.cs[fnID] = c
 		}
 	}
 }
@@ -83,23 +97,39 @@ func (f *File) SearchCalls() {
 	if f.sf.AST == nil {
 		return
 	}
+	var q []string
 	ast.Inspect(f.sf.AST, func(n ast.Node) bool {
+		callerFn, ok := n.(*ast.FuncDecl)
+		if ok {
+			selector := callerFn.Name.String()
+			if callerFn.Recv != nil && len(callerFn.Recv.List) > 0 {
+				var recv = make(parsedtypes.Fields, 0, 1)
+				recv.Parse(callerFn.Recv.List[0])
+				selector = fmt.Sprintf("%s.%s", recv[0].Type.Key, callerFn.Name.String())
+			}
+			q = append(q, selector)
+			return true
+		}
 		call, ok := n.(*ast.CallExpr)
 		// the current node is not a call expr.
 		if !ok {
 			return true
 		}
 
+		caller := ""
+		if len(q) > 0 {
+			caller = q[len(q)-1]
+		}
+
 		switch fn := call.Fun.(type) {
 		case *ast.Ident:
-			c := NewCall(fn.Pos(), "", fn.Name, nil)
-			// callee := f.pkg.CallableDefinition(fn.Name)
-			// c.Callee = callee.ID
+			c := NewCall(fn.Pos(), "", fn.Name, nil, f)
+			c.Pos = f.sm.FileSet().Position(c.pos).String()
+			c.caller = caller
 			f.pkg.calls = append(f.pkg.calls, c)
 		case *ast.SelectorExpr:
 			scope := "unknown"
 			sel := fn.Sel.Name
-			// callee := -1
 			var typ *parsedtypes.Type = nil
 			if prefixIdent, ok := fn.X.(*ast.Ident); ok {
 				scope = prefixIdent.Name
@@ -120,23 +150,12 @@ func (f *File) SearchCalls() {
 					}
 				}
 			}
-			// if typ != nil {
-			// 	if typ.Pkg != "" {
-			// 		if dep, ok := f.deps[typ.Pkg]; ok && !dep.std {
-			// 			calleeDef := dep.pkg.CallableDefinition(sel)
-			// 			if calleeDef != nil {
-			// 				callee = calleeDef.File
-			// 			}
-			// 		}
-			// 	} else {
-			// 		calleeDef := f.pkg.CallableDefinition(sel)
-			// 		if calleeDef != nil {
-			// 			callee = calleeDef.File
-			// 		}
-			// 	}
-			// }
-			c := NewCall(fn.Pos(), scope, sel, typ)
-			// c.Callee = callee
+			if typ != nil {
+				scope = typ.Pkg
+			}
+			c := NewCall(fn.Pos(), scope, sel, typ, f)
+			c.Pos = f.sm.FileSet().Position(c.pos).String()
+			c.caller = caller
 			f.pkg.calls = append(f.pkg.calls, c)
 			// ignore anonymous function
 			// case *ast.FuncLit:
@@ -164,4 +183,16 @@ func retriveImportName(imp *ast.ImportSpec) string {
 // TODO: better impl
 func isStd(importPath string) bool {
 	return !strings.Contains(importPath, "/")
+}
+
+func (f *File) LookupDepByScope(scope string) *Dep {
+	return f.deps[scope]
+}
+
+func (f *File) LookupCallable(name string) *Callable {
+	return f.cs[name]
+}
+
+func (f *File) LookupAbstract(name string) *Abstract {
+	return f.as[name]
 }

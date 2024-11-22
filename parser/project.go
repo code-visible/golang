@@ -8,8 +8,8 @@ import (
 type Project struct {
 	Name      string      `json:"name"`
 	Directory string      `json:"directory"`
-	Pkgs      []Pkg       `json:"pkgs"`
-	Files     []File      `json:"files"`
+	Pkgs      []*Pkg      `json:"pkgs"`
+	Files     []*File     `json:"files"`
 	Abstracts []*Abstract `json:"abstracts"`
 	Callables []*Callable `json:"callables"`
 	Calls     []*Call     `json:"calls"`
@@ -28,7 +28,7 @@ func NewProject(project, directory string) *Project {
 	}
 	p := &Project{
 		Directory: directory,
-		Pkgs:      make([]Pkg, 0, 16),
+		Pkgs:      make([]*Pkg, 0, 16),
 		sm:        NewSourceMap(project, directory),
 		// pkgs:      make(map[string]*Pkg),
 		dir2Pkg: make(map[*SourceDir]*Pkg),
@@ -52,6 +52,8 @@ func (p *Project) Parse() {
 	p.retriveNodes()
 	p.buildDeps()
 	p.retriveCalls()
+	p.attachID()
+	p.connect()
 }
 
 // create pkgs from source
@@ -63,8 +65,8 @@ func (p *Project) createPkgs() {
 		lookupName := fmt.Sprintf("%s/%s", p.Name, dir.Path)
 		pkg := NewSourcePkg(dir.Path, lookupName, p.sm, dir, p)
 		p.Pkgs = append(p.Pkgs, pkg)
-		p.deps[lookupName] = NewPkgDep(lookupName, &pkg)
-		p.dir2Pkg[dir] = &pkg
+		p.deps[lookupName] = NewPkgDep(lookupName, pkg)
+		p.dir2Pkg[dir] = pkg
 	}
 }
 
@@ -105,5 +107,48 @@ func (p *Project) retriveCalls() {
 	}
 	for _, pkg := range p.Pkgs {
 		p.Calls = append(p.Calls, pkg.Calls()...)
+	}
+}
+
+func (p *Project) attachID() {
+	for _, v := range p.Pkgs {
+		v.SetupID()
+	}
+
+	for _, v := range p.Files {
+		v.SetupID()
+	}
+
+	for _, v := range p.Callables {
+		v.SetupID()
+	}
+}
+func (p *Project) connect() {
+	for _, c := range p.Calls {
+		caller := c.file.LookupCallable(c.caller)
+		if caller != nil {
+			c.Caller = caller.ID
+		}
+		selector := c.selector
+		if c.typ != nil {
+			selector = fmt.Sprintf("%s.%s", c.typ.Key, c.selector)
+		}
+		if c.scope == "" {
+			callee := c.file.LookupCallable(selector)
+			if callee != nil {
+				c.Callee = callee.ID
+			}
+			continue
+		}
+		dep := c.file.LookupDepByScope(c.scope)
+		if dep != nil {
+			if dep.std || dep.pkg == nil {
+				continue
+			}
+			callee := dep.pkg.LookupCallable(selector)
+			if callee != nil {
+				c.Callee = callee.ID
+			}
+		}
 	}
 }

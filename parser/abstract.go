@@ -35,6 +35,10 @@ func NewAbstract(ident *ast.Ident, strtTyp *ast.StructType, file *File) *Abstrac
 	return a
 }
 
+func (a *Abstract) SetupID() {
+	a.ID = a.Pos
+}
+
 func (a *Abstract) Complete() {
 	a.Fields = a.fields.List()
 }

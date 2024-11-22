@@ -9,6 +9,7 @@ import (
 
 type Call struct {
 	ID        string `json:"id"`
+	Pos       string `json:"pos"`
 	Caller    string `json:"caller"`
 	Callee    string `json:"callee"`
 	File      string `json:"file"`
@@ -17,18 +18,20 @@ type Call struct {
 	Dep       string `json:"dep"`
 
 	pos      token.Pos
+	caller   string
 	scope    string
 	selector string
 	typ      *parsedtypes.Type
 	file     *File
 }
 
-func NewCall(pos token.Pos, scope string, selector string, typ *parsedtypes.Type) *Call {
+func NewCall(pos token.Pos, scope string, selector string, typ *parsedtypes.Type, file *File) *Call {
 	return &Call{
 		pos:      pos,
 		scope:    scope,
 		selector: selector,
 		typ:      typ,
+		file:     file,
 	}
 }
 

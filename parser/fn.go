@@ -1,24 +1,11 @@
 package parser
 
 import (
+	"fmt"
 	"go/ast"
 
 	"github.com/code-visible/golang/parser/parsedtypes"
 )
-
-// possible concurrent operation for performance consideration
-// type CallableCounter int
-
-// func (c CallableCounter) GetOne() int {
-// 	c++
-// 	return int(c)
-// }
-
-// func (c CallableCounter) Sum() int {
-// 	return int(c + 1)
-// }
-
-// var cc = CallableCounter(-1)
 
 type Callable struct {
 	ID          string   `json:"id"`
@@ -71,15 +58,23 @@ func NewCallable(decl *ast.FuncDecl, file *File) *Callable {
 		}
 	}
 
-	// if len(decl.Recv.List) > 0 {
-	// 		// c.recv.ID
-	// 		// Parse(decl.Recv.List[0])
-	// }
+	if decl.Recv != nil && len(decl.Recv.List) > 0 {
+		var recv = make(parsedtypes.Fields, 0, 1)
+		recv.Parse(decl.Recv.List[0])
+		c.recv = recv[0]
+	}
 
 	return c
+}
+
+func (c *Callable) SetupID() {
+	c.ID = fmt.Sprintf("%s/%s:%s", c.file.Path, c.file.Name, c.Name)
 }
 
 func (c *Callable) Complete() {
 	c.Parameters = c.params.List()
 	c.Results = c.results.List()
+	if c.recv.ID != nil {
+		c.Method = true
+	}
 }

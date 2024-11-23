@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"sync"
 )
 
 var errInvalidModuleName = errors.New("invalid module name")
@@ -16,10 +17,9 @@ type SourceMap struct {
 	module    string
 	path      string
 	directory string
-	dirs      []*SourceDir
+	dirs      map[string]*SourceDir
 	fs        []*SourceFile
 	fset      *token.FileSet
-	dirIdx    map[string]int
 }
 
 func NewSourceMap(project string, directory string) *SourceMap {
@@ -31,6 +31,7 @@ func NewSourceMap(project string, directory string) *SourceMap {
 		module:    moduleName,
 		path:      project,
 		directory: directory,
+		dirs:      make(map[string]*SourceDir),
 		fs:        make([]*SourceFile, 0, 64),
 		fset:      token.NewFileSet(),
 	}
@@ -39,7 +40,6 @@ func NewSourceMap(project string, directory string) *SourceMap {
 }
 
 func (sm *SourceMap) Scan() {
-	// TODO
 	sm.walk()
 	sm.parseFiles()
 }
@@ -47,28 +47,25 @@ func (sm *SourceMap) Scan() {
 // Walk scan all the possible sub directories and files of given path.
 func (sm *SourceMap) walk() {
 	// TODO: handle error
-	var current int
 	err := filepath.WalkDir(sm.directory, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			panic(err)
 		}
-
-		// relPath, err := filepath.Rel(sm.path, path)
-		// if err != nil {
-		// 	fmt.Println(err)
-		// 	return errors.New("unknown error while parsing relative path")
-		// }
+		absp, _ := filepath.Abs(path)
 
 		if d.IsDir() {
-			current = len(sm.dirs)
-			sm.dirs = append(sm.dirs, &SourceDir{
-				Path: path,
-			})
+			dir := &SourceDir{
+				Path:  path,
+				Files: 0,
+				Pkg:   false,
+			}
+			sm.dirs[absp] = dir
 		} else {
+			current := filepath.Dir(absp)
 			sm.fs = append(sm.fs, &SourceFile{
-				Path: filepath.Dir(path),
+				Path: path,
 				Name: filepath.Base(path),
-				Dir:  current,
+				Dir:  sm.dirs[current],
 			})
 		}
 
@@ -80,9 +77,16 @@ func (sm *SourceMap) walk() {
 }
 
 func (sm *SourceMap) parseFiles() {
+	wg := sync.WaitGroup{}
+	wg.Add(len(sm.fs))
 	for _, f := range sm.fs {
-		f.Parse2AST(sm.fset)
+		f.Dir.Files++
+		go func(file *SourceFile) {
+			file.Parse2AST(sm.fset)
+			wg.Done()
+		}(f)
 	}
+	wg.Wait()
 }
 
 func (sm *SourceMap) Module() string {
@@ -98,7 +102,11 @@ func (sm *SourceMap) Files() []*SourceFile {
 }
 
 func (sm *SourceMap) Dirs() []*SourceDir {
-	return sm.dirs
+	var dirs = make([]*SourceDir, 0, len(sm.dirs))
+	for _, d := range sm.dirs {
+		dirs = append(dirs, d)
+	}
+	return dirs
 }
 
 func (sm *SourceMap) FileSet() *token.FileSet {

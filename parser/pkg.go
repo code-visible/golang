@@ -1,24 +1,41 @@
 package parser
 
+import (
+	"github.com/code-visible/golang/parser/utils"
+)
+
 type Pkg struct {
 	ID   string `json:"id"`
+	Name string `json:"name"`
 	Path string `json:"path"`
 
 	sm    *SourceMap
-	idx   int
 	cs    map[string]*Callable
 	as    map[string]*Abstract
 	calls []*Call
+	sd    *SourceDir
+	p     *Project
 }
 
-func NewSourcePkg(sm *SourceMap, idx int) Pkg {
-	return Pkg{
+func NewSourcePkg(path string, name string, sm *SourceMap, sd *SourceDir, p *Project) *Pkg {
+	return &Pkg{
+		Name:  name,
+		Path:  path,
 		sm:    sm,
-		idx:   idx,
 		cs:    make(map[string]*Callable),
 		as:    make(map[string]*Abstract),
 		calls: make([]*Call, 0, 8),
+		sd:    sd,
+		p:     p,
 	}
+}
+
+func (p *Pkg) SetupID() {
+	p.ID = utils.Hash(p.LookupName())
+}
+
+func (p *Pkg) LookupName() string {
+	return p.Name
 }
 
 func (p *Pkg) Callables() []*Callable {
@@ -41,10 +58,10 @@ func (p *Pkg) Calls() []*Call {
 	return p.calls
 }
 
-func (p *Pkg) CallableDefinition(name string) *Callable {
+func (p *Pkg) LookupCallable(name string) *Callable {
 	return p.cs[name]
 }
 
-func (p *Pkg) AbstractDefinition(name string) *Abstract {
+func (p *Pkg) LookupAbstract(name string) *Abstract {
 	return p.as[name]
 }

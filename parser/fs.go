@@ -9,17 +9,19 @@ import (
 )
 
 type SourceDir struct {
-	Path         string
-	CountGoFiles int
+	Path  string
+	Files int
+	Pkg   bool
 }
 
 type SourceFile struct {
 	Path     string
 	Name     string
-	Dir      int
+	Dir      *SourceDir
 	AST      *ast.File
 	GoSource bool
 	Test     bool
+	Error    string
 }
 
 func (sf *SourceFile) Parse2AST(fset *token.FileSet) {
@@ -32,10 +34,12 @@ func (sf *SourceFile) Parse2AST(fset *token.FileSet) {
 	// TODO: handle error
 	p := filepath.Join(sf.Path, sf.Name)
 	parsed, err := parser.ParseFile(fset, p, nil, parser.ParseComments)
+	// don't stop if current file can't be parsed
 	if err != nil {
-		panic(err)
+		sf.Error = err.Error()
 	}
 	sf.AST = parsed
+	sf.Dir.Pkg = true
 }
 
 func (sf *SourceFile) checkGo() {

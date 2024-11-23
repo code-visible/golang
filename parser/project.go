@@ -6,16 +6,19 @@ import (
 )
 
 type Project struct {
-	Pkgs      []Pkg       `json:"pkgs"`
-	Files     []File      `json:"files"`
+	Name      string      `json:"name"`
+	Directory string      `json:"directory"`
+	Pkgs      []*Pkg      `json:"pkgs"`
+	Files     []*File     `json:"files"`
 	Abstracts []*Abstract `json:"abstracts"`
 	Callables []*Callable `json:"callables"`
 	Calls     []*Call     `json:"calls"`
+	Deps      []*Dep      `json:"deps"`
 
-	// directory -> pkg
-	pkgIdx map[string]int
-	sm     *SourceMap
-	deps   map[string]*Pkg
+	sm *SourceMap
+	// pkgs    map[string]*Pkg
+	dir2Pkg map[*SourceDir]*Pkg
+	deps    map[string]*Dep
 }
 
 func NewProject(project, directory string) *Project {
@@ -24,11 +27,15 @@ func NewProject(project, directory string) *Project {
 		panic(err)
 	}
 	p := &Project{
-		Pkgs:   make([]Pkg, 0, 16),
-		sm:     NewSourceMap(project, directory),
-		pkgIdx: make(map[string]int),
-		deps:   make(map[string]*Pkg),
+		Directory: directory,
+		Pkgs:      make([]*Pkg, 0, 16),
+		sm:        NewSourceMap(project, directory),
+		// pkgs:      make(map[string]*Pkg),
+		dir2Pkg: make(map[*SourceDir]*Pkg),
+		deps:    make(map[string]*Dep),
 	}
+
+	p.Name = p.sm.module
 
 	return p
 }
@@ -43,28 +50,33 @@ func (p *Project) Parse() {
 	p.createPkgs()
 	p.createFiles()
 	p.retriveNodes()
+	p.buildDeps()
 	p.retriveCalls()
+	p.injectFields()
+	p.connect()
 }
 
 // create pkgs from source
 func (p *Project) createPkgs() {
-	for idx, dir := range p.sm.Dirs() {
-		p.pkgIdx[dir.Path] = len(p.Pkgs)
-		pkg := NewSourcePkg(p.sm, idx)
-		pkg.Path = dir.Path
+	for _, dir := range p.sm.Dirs() {
+		if !dir.Pkg {
+			continue
+		}
+		lookupName := fmt.Sprintf("%s/%s", p.Name, dir.Path)
+		pkg := NewSourcePkg(dir.Path, lookupName, p.sm, dir, p)
 		p.Pkgs = append(p.Pkgs, pkg)
-		p.deps[fmt.Sprintf("%s/%s", p.sm.Module(), pkg.Path)] = &pkg
+		p.deps[lookupName] = NewPkgDep(lookupName, pkg)
+		p.dir2Pkg[dir] = pkg
 	}
 }
 
 // create files from source
 func (p *Project) createFiles() {
-	for idx, f := range p.sm.Files() {
-		pkgIdx := p.pkgIdx[f.Path]
-		file := NewSourceFile(p.sm, idx, &p.Pkgs[pkgIdx])
-		file.Path = f.Path
-		file.Name = f.Name
-		file.Pkg = pkgIdx
+	for _, f := range p.sm.Files() {
+		if !f.GoSource || f.Test {
+			continue
+		}
+		file := NewSourceFile(f.Path, f.Name, p.sm, f, p.dir2Pkg[f.Dir])
 		p.Files = append(p.Files, file)
 	}
 }
@@ -81,14 +93,103 @@ func (p *Project) retriveNodes() {
 	}
 }
 
+// build dependencies of files
+func (p *Project) buildDeps() {
+	for _, f := range p.Files {
+		f.BuildDeps()
+	}
+
+	for _, v := range p.deps {
+		if v.std {
+			v.Typ = "std"
+		} else {
+			v.Typ = "pkg"
+		}
+		p.Deps = append(p.Deps, v)
+	}
+}
+
 // retrive the calls
 func (p *Project) retriveCalls() {
 	for _, f := range p.Files {
-		f.BuildDeps(p.deps)
 		f.SearchCalls()
 	}
-
 	for _, pkg := range p.Pkgs {
 		p.Calls = append(p.Calls, pkg.Calls()...)
+	}
+}
+
+func (p *Project) injectFields() {
+	for _, v := range p.Pkgs {
+		v.SetupID()
+	}
+
+	for _, v := range p.Files {
+		v.Pkg = v.pkg.ID
+		v.SetupID()
+	}
+
+	for _, v := range p.Callables {
+		v.File = v.file.ID
+		v.Pkg = v.file.pkg.ID
+		v.SetupID()
+	}
+
+	for _, v := range p.Abstracts {
+		v.File = v.file.ID
+		v.Pkg = v.file.pkg.ID
+		v.SetupID()
+	}
+
+	for _, v := range p.Calls {
+		v.File = v.file.ID
+		v.SetupID()
+	}
+
+	for _, v := range p.Deps {
+		v.SetupID()
+	}
+}
+
+func (p *Project) connect() {
+	for _, c := range p.Calls {
+		caller := c.file.LookupCallable(c.caller)
+		if caller != nil {
+			c.Caller = caller.ID
+		}
+		selector := c.selector
+		if c.typ != nil {
+			selector = fmt.Sprintf("%s.%s", c.typ.Key, c.selector)
+		}
+		if c.scope == "" {
+			if _, ok := Builtins[selector]; ok {
+				c.Typ = CallTypeBuiltin
+				continue
+			}
+			c.Typ = CallTypeInternal
+			callee := c.file.pkg.LookupCallable(selector)
+			if callee != nil {
+				c.Callee = callee.ID
+			}
+			continue
+		}
+		if _, ok := Libs[c.scope]; ok {
+			c.Typ = "std"
+			continue
+		}
+		dep := c.file.LookupDepByScope(c.scope)
+		if dep != nil {
+			c.Typ = CallTypeExternal
+			c.Dep = dep.Name
+			if dep.std || dep.pkg == nil {
+				continue
+			}
+			callee := dep.pkg.LookupCallable(selector)
+			if callee != nil {
+				c.Callee = callee.ID
+			}
+		} else {
+			c.Typ = CallTypePackage
+		}
 	}
 }

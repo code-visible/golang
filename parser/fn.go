@@ -5,24 +5,22 @@ import (
 	"go/ast"
 
 	"github.com/code-visible/golang/parser/parsedtypes"
+	"github.com/code-visible/golang/parser/utils"
 )
 
 type Callable struct {
-	ID          string   `json:"id"`
-	Pos         string   `json:"pos"`
-	Name        string   `json:"name"`
-	Abstract    string   `json:"abstract"`
-	File        string   `json:"file"`
-	Pkg         string   `json:"pkg"`
-	Typ         string   `json:"typ"`
-	Comment     string   `json:"comment"`
-	Syscalls    []string `json:"syscalls"`
-	Parameters  []string `json:"parameters"`
-	Results     []string `json:"results"`
-	Description string   `json:"description"`
-	Method      bool     `json:"method"`
-	Private     bool     `json:"private"`
-	Orphan      bool     `json:"orphan"`
+	ID         string   `json:"id"`
+	Pos        string   `json:"pos"`
+	Name       string   `json:"name"`
+	Abstract   string   `json:"abstract"`
+	File       string   `json:"file"`
+	Pkg        string   `json:"pkg"`
+	Comment    string   `json:"comment"`
+	Parameters []string `json:"parameters"`
+	Results    []string `json:"results"`
+	Method     bool     `json:"method"`
+	Private    bool     `json:"private"`
+	Orphan     bool     `json:"orphan"`
 
 	ident   *ast.Ident
 	recv    parsedtypes.Field
@@ -68,7 +66,7 @@ func NewCallable(decl *ast.FuncDecl, file *File) *Callable {
 }
 
 func (c *Callable) SetupID() {
-	c.ID = c.LookupName()
+	c.ID = utils.Hash(c.LookupName())
 }
 
 func (c *Callable) LookupName() string {

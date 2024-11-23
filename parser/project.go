@@ -162,14 +162,24 @@ func (p *Project) connect() {
 			selector = fmt.Sprintf("%s.%s", c.typ.Key, c.selector)
 		}
 		if c.scope == "" {
+			if _, ok := Builtins[selector]; ok {
+				c.Typ = CallTypeBuiltin
+				continue
+			}
+			c.Typ = CallTypeInternal
 			callee := c.file.pkg.LookupCallable(selector)
 			if callee != nil {
 				c.Callee = callee.ID
 			}
 			continue
 		}
+		if _, ok := Libs[c.scope]; ok {
+			c.Typ = "std"
+			continue
+		}
 		dep := c.file.LookupDepByScope(c.scope)
 		if dep != nil {
+			c.Typ = CallTypeExternal
 			c.Dep = dep.Name
 			if dep.std || dep.pkg == nil {
 				continue
@@ -178,6 +188,8 @@ func (p *Project) connect() {
 			if callee != nil {
 				c.Callee = callee.ID
 			}
+		} else {
+			c.Typ = CallTypePackage
 		}
 	}
 }

@@ -1,5 +1,9 @@
 package parser
 
+import (
+	"github.com/code-visible/golang/parser/utils"
+)
+
 type Pkg struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
@@ -27,7 +31,7 @@ func NewSourcePkg(path string, name string, sm *SourceMap, sd *SourceDir, p *Pro
 }
 
 func (p *Pkg) SetupID() {
-	p.ID = p.LookupName()
+	p.ID = utils.Hash(p.LookupName())
 }
 
 func (p *Pkg) LookupName() string {

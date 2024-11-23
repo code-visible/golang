@@ -5,6 +5,7 @@ import (
 	"go/ast"
 
 	"github.com/code-visible/golang/parser/parsedtypes"
+	"github.com/code-visible/golang/parser/utils"
 )
 
 type Abstract struct {
@@ -37,7 +38,7 @@ func NewAbstract(ident *ast.Ident, strtTyp *ast.StructType, file *File) *Abstrac
 }
 
 func (a *Abstract) SetupID() {
-	a.ID = a.LookupName()
+	a.ID = utils.Hash(a.LookupName())
 }
 
 func (a *Abstract) LookupName() string {

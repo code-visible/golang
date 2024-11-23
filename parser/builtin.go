@@ -1,4 +1,4 @@
-package lang
+package parser
 
 var Builtins = map[string]byte{
 	"len":     0,

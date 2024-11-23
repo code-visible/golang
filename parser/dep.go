@@ -3,6 +3,8 @@ package parser
 import (
 	"go/ast"
 	"strings"
+
+	"github.com/code-visible/golang/parser/utils"
 )
 
 type Dep struct {
@@ -37,5 +39,5 @@ func NewDep(name string, imp *ast.ImportSpec) *Dep {
 }
 
 func (d *Dep) SetupID() {
-	d.ID = d.Name
+	d.ID = utils.Hash(d.Name)
 }

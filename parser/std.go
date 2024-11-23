@@ -1,8 +1,8 @@
-package lang
+package parser
 
 // common std lib
 // cd /usr/local/go/src/ && ls -d */ | cut -f1 -d'/'
-var StdLib = map[string]byte{
+var Libs = map[string]byte{
 	"archive":       0,
 	"arena":         0,
 	"bufio":         0,

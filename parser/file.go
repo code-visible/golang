@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/code-visible/golang/parser/parsedtypes"
+	"github.com/code-visible/golang/parser/utils"
 )
 
 type File struct {
@@ -41,7 +42,7 @@ func NewSourceFile(path string, name string, sm *SourceMap, sf *SourceFile, pkg 
 }
 
 func (f *File) SetupID() {
-	f.ID = f.LookupName()
+	f.ID = utils.Hash(f.LookupName())
 }
 
 func (f *File) LookupName() string {

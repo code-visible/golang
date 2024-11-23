@@ -5,6 +5,15 @@ import (
 	"go/token"
 
 	"github.com/code-visible/golang/parser/parsedtypes"
+	"github.com/code-visible/golang/parser/utils"
+)
+
+const (
+	CallTypeBuiltin  = "builtin"
+	CallTypeStd      = "std"
+	CallTypeInternal = "internal"
+	CallTypeExternal = "external"
+	CallTypePackage  = "package"
 )
 
 type Call struct {
@@ -36,7 +45,7 @@ func NewCall(pos token.Pos, scope string, selector string, typ *parsedtypes.Type
 }
 
 func (c *Call) SetupID() {
-	c.ID = c.LookupName()
+	c.ID = utils.Hash(c.LookupName())
 }
 
 func (c *Call) LookupName() string {

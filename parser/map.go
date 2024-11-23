@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"sync"
 )
 
 var errInvalidModuleName = errors.New("invalid module name")
@@ -75,10 +76,16 @@ func (sm *SourceMap) walk() {
 }
 
 func (sm *SourceMap) parseFiles() {
+	wg := sync.WaitGroup{}
+	wg.Add(len(sm.fs))
 	for _, f := range sm.fs {
 		f.Dir.Files++
-		f.Parse2AST(sm.fset)
+		go func(file *SourceFile) {
+			file.Parse2AST(sm.fset)
+			wg.Done()
+		}(f)
 	}
+	wg.Wait()
 }
 
 func (sm *SourceMap) Module() string {

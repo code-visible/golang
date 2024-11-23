@@ -17,7 +17,7 @@ type SourceMap struct {
 	module    string
 	path      string
 	directory string
-	dirs      []*SourceDir
+	dirs      map[string]*SourceDir
 	fs        []*SourceFile
 	fset      *token.FileSet
 }
@@ -31,6 +31,7 @@ func NewSourceMap(project string, directory string) *SourceMap {
 		module:    moduleName,
 		path:      project,
 		directory: directory,
+		dirs:      make(map[string]*SourceDir),
 		fs:        make([]*SourceFile, 0, 64),
 		fset:      token.NewFileSet(),
 	}
@@ -46,11 +47,11 @@ func (sm *SourceMap) Scan() {
 // Walk scan all the possible sub directories and files of given path.
 func (sm *SourceMap) walk() {
 	// TODO: handle error
-	var current *SourceDir = nil
 	err := filepath.WalkDir(sm.directory, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			panic(err)
 		}
+		absp, _ := filepath.Abs(path)
 
 		if d.IsDir() {
 			dir := &SourceDir{
@@ -58,13 +59,13 @@ func (sm *SourceMap) walk() {
 				Files: 0,
 				Pkg:   false,
 			}
-			current = dir
-			sm.dirs = append(sm.dirs, dir)
+			sm.dirs[absp] = dir
 		} else {
+			current := filepath.Dir(absp)
 			sm.fs = append(sm.fs, &SourceFile{
-				Path: filepath.Dir(path),
+				Path: path,
 				Name: filepath.Base(path),
-				Dir:  current,
+				Dir:  sm.dirs[current],
 			})
 		}
 
@@ -101,7 +102,11 @@ func (sm *SourceMap) Files() []*SourceFile {
 }
 
 func (sm *SourceMap) Dirs() []*SourceDir {
-	return sm.dirs
+	var dirs = make([]*SourceDir, 0, len(sm.dirs))
+	for _, d := range sm.dirs {
+		dirs = append(dirs, d)
+	}
+	return dirs
 }
 
 func (sm *SourceMap) FileSet() *token.FileSet {

@@ -63,7 +63,7 @@ func (sm *SourceMap) walk() {
 		} else {
 			current := filepath.Dir(absp)
 			sm.fs = append(sm.fs, &SourceFile{
-				Path: path,
+				Path: filepath.Dir(path),
 				Name: filepath.Base(path),
 				Dir:  sm.dirs[current],
 			})

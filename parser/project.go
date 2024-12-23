@@ -102,8 +102,10 @@ func (p *Project) buildDeps() {
 	for _, v := range p.deps {
 		if v.std {
 			v.Typ = "std"
-		} else {
+		} else if v.pkg != nil {
 			v.Typ = "pkg"
+		} else {
+			v.Typ = "open"
 		}
 		p.Deps = append(p.Deps, v)
 	}

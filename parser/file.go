@@ -11,14 +11,14 @@ import (
 )
 
 type File struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-	Path string `json:"path"`
-	Pkg  string `json:"pkg"`
-	// Callables []int  `json:"callables"`
-	// Abstracts []int  `json:"abstracts"`
-	// Calls     []int  `json:"calls"`
-	// Deps      []int  `json:"deps"`
+	ID   string   `json:"id"`
+	Name string   `json:"name"`
+	Path string   `json:"path"`
+	Pkg  string   `json:"pkg"`
+	Deps []string `json:"deps"`
+	// Callables []string  `json:"callables"`
+	// Abstracts []string  `json:"abstracts"`
+	// Calls     []string  `json:"calls"`
 
 	sm   *SourceMap
 	pkg  *Pkg
@@ -62,6 +62,12 @@ func (f *File) BuildDeps() {
 		}
 		name := retriveImportName(imp)
 		f.deps[name] = d
+	}
+}
+
+func (f *File) InjectDeps() {
+	for _, d := range f.deps {
+		f.Deps = append(f.Deps, d.ID)
 	}
 }
 

@@ -151,6 +151,10 @@ func (p *Project) injectFields() {
 	for _, v := range p.Deps {
 		v.SetupID()
 	}
+
+	for _, v := range p.Files {
+		v.InjectDeps()
+	}
 }
 
 func (p *Project) connect() {

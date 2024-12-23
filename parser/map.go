@@ -30,7 +30,7 @@ func NewSourceMap(project string, directory string) *SourceMap {
 	sm := &SourceMap{
 		module:    moduleName,
 		path:      project,
-		directory: directory,
+		directory: filepath.ToSlash(directory),
 		dirs:      make(map[string]*SourceDir),
 		fs:        make([]*SourceFile, 0, 64),
 		fset:      token.NewFileSet(),
@@ -55,7 +55,7 @@ func (sm *SourceMap) walk() {
 
 		if d.IsDir() {
 			dir := &SourceDir{
-				Path:  path,
+				Path:  filepath.ToSlash(path),
 				Files: 0,
 				Pkg:   false,
 			}
@@ -63,8 +63,8 @@ func (sm *SourceMap) walk() {
 		} else {
 			current := filepath.Dir(absp)
 			sm.fs = append(sm.fs, &SourceFile{
-				Path: filepath.Dir(path),
-				Name: filepath.Base(path),
+				Path: filepath.ToSlash(filepath.Dir(path)),
+				Name: filepath.ToSlash(filepath.Base(path)),
 				Dir:  sm.dirs[current],
 			})
 		}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"go/ast"
 	"go/token"
+	"path/filepath"
 	"strings"
 
 	"github.com/code-visible/golang/parser/parsedtypes"
@@ -83,7 +84,7 @@ func (f *File) EnumerateDecls() {
 				// ignore interface, type rename
 				if strtType, ok := typSpec.Type.(*ast.StructType); ok {
 					a := NewAbstract(typSpec.Name, strtType, f)
-					a.Pos = f.sm.FileSet().Position(a.ident.Pos()).String()
+					a.Pos = filepath.ToSlash(f.sm.FileSet().Position(a.ident.Pos()).String())
 					a.Complete()
 					f.as[a.Name] = a
 					f.pkg.as[a.Name] = a
@@ -91,7 +92,7 @@ func (f *File) EnumerateDecls() {
 			}
 		case *ast.FuncDecl:
 			c := NewCallable(decl, f)
-			c.Pos = f.sm.FileSet().Position(c.ident.Pos()).String()
+			c.Pos = filepath.ToSlash(f.sm.FileSet().Position(c.ident.Pos()).String())
 			c.Complete()
 			fnID := c.Name
 			if c.Method {
@@ -135,7 +136,7 @@ func (f *File) SearchCalls() {
 		switch fn := call.Fun.(type) {
 		case *ast.Ident:
 			c := NewCall(fn.Pos(), "", fn.Name, nil, f)
-			c.Pos = f.sm.FileSet().Position(c.pos).String()
+			c.Pos = filepath.ToSlash(f.sm.FileSet().Position(c.pos).String())
 			c.caller = caller
 			f.pkg.calls = append(f.pkg.calls, c)
 		case *ast.SelectorExpr:
@@ -165,7 +166,7 @@ func (f *File) SearchCalls() {
 				scope = typ.Pkg
 			}
 			c := NewCall(fn.Pos(), scope, sel, typ, f)
-			c.Pos = f.sm.FileSet().Position(c.pos).String()
+			c.Pos = filepath.ToSlash(f.sm.FileSet().Position(c.pos).String())
 			c.caller = caller
 			f.pkg.calls = append(f.pkg.calls, c)
 			// ignore anonymous function

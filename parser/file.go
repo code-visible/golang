@@ -33,6 +33,7 @@ func NewSourceFile(path string, name string, sm *SourceMap, sf *SourceFile, pkg 
 	return &File{
 		Path: path,
 		Name: name,
+		Deps: []string{},
 		sm:   sm,
 		sf:   sf,
 		pkg:  pkg,

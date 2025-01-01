@@ -17,9 +17,6 @@ type File struct {
 	Path string   `json:"path"`
 	Pkg  string   `json:"pkg"`
 	Deps []string `json:"deps"`
-	// Callables []string  `json:"callables"`
-	// Abstracts []string  `json:"abstracts"`
-	// Calls     []string  `json:"calls"`
 
 	sm   *SourceMap
 	pkg  *Pkg
@@ -97,8 +94,7 @@ func (f *File) EnumerateDecls() {
 			c.Complete()
 			fnID := c.Name
 			if c.Method {
-				c.Abstract = c.recv.Type.Key
-				fnID = fmt.Sprintf("%s.%s", c.Abstract, c.Name)
+				fnID = fmt.Sprintf("%s.%s", c.abstract, c.Name)
 			}
 			f.cs[fnID] = c
 			f.pkg.cs[fnID] = c

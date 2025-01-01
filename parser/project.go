@@ -156,6 +156,10 @@ func (p *Project) injectFields() {
 	for _, v := range p.Files {
 		v.InjectDeps()
 	}
+
+	for _, v := range p.Callables {
+		v.SetupMethod()
+	}
 }
 
 func (p *Project) connect() {

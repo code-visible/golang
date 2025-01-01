@@ -12,6 +12,7 @@ type Callable struct {
 	ID         string   `json:"id"`
 	Pos        string   `json:"pos"`
 	Name       string   `json:"name"`
+	Signature  string   `json:"signature"`
 	Abstract   string   `json:"abstract"`
 	File       string   `json:"file"`
 	Pkg        string   `json:"pkg"`
@@ -22,11 +23,12 @@ type Callable struct {
 	Private    bool     `json:"private"`
 	Orphan     bool     `json:"orphan"`
 
-	ident   *ast.Ident
-	recv    parsedtypes.Field
-	params  parsedtypes.Fields
-	results parsedtypes.Fields
-	file    *File
+	abstract string
+	ident    *ast.Ident
+	recv     parsedtypes.Field
+	params   parsedtypes.Fields
+	results  parsedtypes.Fields
+	file     *File
 }
 
 func NewCallable(decl *ast.FuncDecl, file *File) *Callable {
@@ -70,6 +72,9 @@ func (c *Callable) SetupID() {
 }
 
 func (c *Callable) LookupName() string {
+	if c.Method {
+		return fmt.Sprintf("%s:(%s).%s", c.file.LookupName(), c.abstract, c.Name)
+	}
 	return fmt.Sprintf("%s:%s", c.file.LookupName(), c.Name)
 }
 
@@ -78,5 +83,23 @@ func (c *Callable) Complete() {
 	c.Results = c.results.List()
 	if c.recv.ID != nil {
 		c.Method = true
+		c.abstract = c.recv.Type.Key
+	}
+	c.Private = (c.Name[0] >= 'a' && c.Name[0] <= 'z') || c.Name[0] == '_'
+	parametersStr := c.params.Format(",")
+	resultsStr := c.results.Format(",")
+	if c.Method {
+		c.Signature = fmt.Sprintf("(%s).%s(%s) -> (%s)", c.abstract, c.Name, parametersStr, resultsStr)
+	} else {
+		c.Signature = fmt.Sprintf("%s(%s) -> (%s)", c.Name, parametersStr, resultsStr)
+	}
+}
+
+func (c *Callable) SetupMethod() {
+	if c.Method {
+		abs := c.file.pkg.LookupAbstract(c.abstract)
+		if abs != nil {
+			c.Abstract = abs.ID
+		}
 	}
 }

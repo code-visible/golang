@@ -1,4 +1,4 @@
-package parser
+package golang
 
 var Builtins = map[string]byte{
 	"len":     0,

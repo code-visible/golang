@@ -1,10 +1,10 @@
-package parser
+package golang
 
 import (
 	"go/ast"
 	"strings"
 
-	"github.com/code-visible/golang/parser/utils"
+	"github.com/code-visible/golang/utils"
 )
 
 type Dep struct {

@@ -1,4 +1,4 @@
-package parser
+package golang
 
 import (
 	"fmt"
@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/code-visible/golang/parser/parsedtypes"
-	"github.com/code-visible/golang/parser/utils"
+	"github.com/code-visible/golang/parsedtypes"
+	"github.com/code-visible/golang/utils"
 )
 
 type File struct {

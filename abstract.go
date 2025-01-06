@@ -1,11 +1,11 @@
-package parser
+package golang
 
 import (
 	"fmt"
 	"go/ast"
 
-	"github.com/code-visible/golang/parser/parsedtypes"
-	"github.com/code-visible/golang/parser/utils"
+	"github.com/code-visible/golang/parsedtypes"
+	"github.com/code-visible/golang/utils"
 )
 
 type Abstract struct {

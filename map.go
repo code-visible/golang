@@ -1,4 +1,4 @@
-package parser
+package golang
 
 import (
 	"bytes"
@@ -63,7 +63,7 @@ func (sm *SourceMap) walk() {
 		} else {
 			current := filepath.Dir(absp)
 			sm.fs = append(sm.fs, &SourceFile{
-				Path: filepath.ToSlash(filepath.Dir(path)),
+				Path: filepath.ToSlash(current),
 				Name: filepath.ToSlash(filepath.Base(path)),
 				Dir:  sm.dirs[current],
 			})

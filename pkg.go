@@ -1,7 +1,7 @@
-package parser
+package golang
 
 import (
-	"github.com/code-visible/golang/parser/utils"
+	"github.com/code-visible/golang/utils"
 )
 
 type Pkg struct {

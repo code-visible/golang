@@ -1,4 +1,4 @@
-package parser
+package golang
 
 // common std lib
 // cd /usr/local/go/src/ && ls -d */ | cut -f1 -d'/'

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/code-visible/golang/parser"
+	"github.com/code-visible/golang"
 )
 
 func main() {
@@ -23,7 +23,7 @@ func main() {
 	fmt.Printf("graphy: try to parse project (%s) with folder (%s)\n", project, directory)
 
 	// enter the parse progress
-	p := parser.NewProject(project, directory)
+	p := golang.NewProject(project, directory)
 	p.Initialize()
 	p.Parse()
 

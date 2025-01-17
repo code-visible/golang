@@ -1,4 +1,4 @@
-package parser
+package golang
 
 import (
 	"fmt"
@@ -150,6 +150,15 @@ func (p *Project) injectFields() {
 
 	for _, v := range p.Deps {
 		v.SetupID()
+		v.SetupRef()
+	}
+
+	for _, v := range p.Files {
+		v.InjectDeps()
+	}
+
+	for _, v := range p.Callables {
+		v.SetupMethod()
 	}
 }
 

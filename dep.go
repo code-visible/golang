@@ -1,16 +1,17 @@
-package parser
+package golang
 
 import (
 	"go/ast"
 	"strings"
 
-	"github.com/code-visible/golang/parser/utils"
+	"github.com/code-visible/golang/utils"
 )
 
 type Dep struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
 	Typ  string `json:"type"`
+	Ref  string `json:"ref"`
 
 	std bool
 	pkg *Pkg
@@ -40,4 +41,10 @@ func NewDep(name string, imp *ast.ImportSpec) *Dep {
 
 func (d *Dep) SetupID() {
 	d.ID = utils.Hash(d.Name)
+}
+
+func (d *Dep) SetupRef() {
+	if d.pkg != nil {
+		d.Ref = d.pkg.ID
+	}
 }

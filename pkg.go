@@ -12,7 +12,6 @@ type Pkg struct {
 	FullName string   `json:"fullName"`
 	Path     string   `json:"path"`
 	Imports  []string `json:"imports"`
-	Exports  []string `json:"exports"`
 
 	sm    *SourceMap
 	cs    map[string]*Callable
@@ -27,6 +26,7 @@ func NewSourcePkg(path_ string, name string, sm *SourceMap, sd *SourceDir, p *Pr
 		Name:     path.Base(path_),
 		FullName: name,
 		Path:     path_,
+		Imports:  make([]string, 0, 8),
 		sm:       sm,
 		cs:       make(map[string]*Callable),
 		as:       make(map[string]*Abstract),

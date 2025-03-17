@@ -9,18 +9,19 @@ import (
 )
 
 type Project struct {
-	Name       string      `json:"name"`
-	Lang       string      `json:"lang"`
-	Parser     string      `json:"parser"`
-	Timestamp  string      `json:"timestamp"`
-	Repository string      `json:"repository"`
-	Version    string      `json:"version"`
-	Pkgs       []*Pkg      `json:"pkgs"`
-	Files      []*File     `json:"files"`
-	Abstracts  []*Abstract `json:"abstracts"`
-	Callables  []*Callable `json:"callables"`
-	Calls      []*Call     `json:"calls"`
-	Deps       []*Dep      `json:"deps"`
+	Name       string       `json:"name"`
+	Lang       string       `json:"lang"`
+	Parser     string       `json:"parser"`
+	Timestamp  string       `json:"timestamp"`
+	Repository string       `json:"repository"`
+	Version    string       `json:"version"`
+	Pkgs       []*Pkg       `json:"pkgs"`
+	Files      []*File      `json:"files"`
+	Abstracts  []*Abstract  `json:"absts"`
+	Callables  []*Callable  `json:"fns"`
+	Calls      []*Call      `json:"calls"`
+	References []*Reference `json:"refs"`
+	Deps       []*Dep       `json:"deps"`
 
 	sm        *SourceMap
 	directory string
@@ -42,6 +43,12 @@ func NewProject(project, directory string) *Project {
 		Repository: os.Getenv("repository"),
 		Version:    os.Getenv("version"),
 		Pkgs:       make([]*Pkg, 0, 16),
+		Files:      make([]*File, 0, 128),
+		Abstracts:  make([]*Abstract, 0, 128),
+		Callables:  make([]*Callable, 0, 1024),
+		Calls:      make([]*Call, 0, 1024),
+		References: make([]*Reference, 0, 128),
+		Deps:       make([]*Dep, 0, 128),
 		sm:         NewSourceMap(project, directory),
 		// pkgs:      make(map[string]*Pkg),
 		dir2Pkg: make(map[*SourceDir]*Pkg),

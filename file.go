@@ -18,7 +18,6 @@ type File struct {
 	Pkg     string   `json:"pkg"`
 	Deps    []string `json:"deps"`
 	Imports []string `json:"imports"`
-	Exports []string `json:"exports"`
 
 	sm   *SourceMap
 	pkg  *Pkg
@@ -30,15 +29,16 @@ type File struct {
 
 func NewSourceFile(path string, name string, sm *SourceMap, sf *SourceFile, pkg *Pkg) *File {
 	return &File{
-		Path: path,
-		Name: name,
-		Deps: []string{},
-		sm:   sm,
-		sf:   sf,
-		pkg:  pkg,
-		deps: make(map[string]*Dep),
-		cs:   make(map[string]*Callable),
-		as:   make(map[string]*Abstract),
+		Path:    path,
+		Name:    name,
+		Deps:    []string{},
+		Imports: make([]string, 0, 8),
+		sm:      sm,
+		sf:      sf,
+		pkg:     pkg,
+		deps:    make(map[string]*Dep),
+		cs:      make(map[string]*Callable),
+		as:      make(map[string]*Abstract),
 	}
 }
 

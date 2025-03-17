@@ -12,11 +12,12 @@ import (
 )
 
 type File struct {
-	ID   string   `json:"id"`
-	Name string   `json:"name"`
-	Path string   `json:"path"`
-	Pkg  string   `json:"pkg"`
-	Deps []string `json:"deps"`
+	ID      string   `json:"id"`
+	Name    string   `json:"name"`
+	Path    string   `json:"path"`
+	Pkg     string   `json:"pkg"`
+	Deps    []string `json:"deps"`
+	Imports []string `json:"imports"`
 
 	sm   *SourceMap
 	pkg  *Pkg
@@ -28,15 +29,16 @@ type File struct {
 
 func NewSourceFile(path string, name string, sm *SourceMap, sf *SourceFile, pkg *Pkg) *File {
 	return &File{
-		Path: path,
-		Name: name,
-		Deps: []string{},
-		sm:   sm,
-		sf:   sf,
-		pkg:  pkg,
-		deps: make(map[string]*Dep),
-		cs:   make(map[string]*Callable),
-		as:   make(map[string]*Abstract),
+		Path:    path,
+		Name:    name,
+		Deps:    []string{},
+		Imports: make([]string, 0, 8),
+		sm:      sm,
+		sf:      sf,
+		pkg:     pkg,
+		deps:    make(map[string]*Dep),
+		cs:      make(map[string]*Callable),
+		as:      make(map[string]*Abstract),
 	}
 }
 
@@ -67,6 +69,9 @@ func (f *File) BuildDeps() {
 func (f *File) InjectDeps() {
 	for _, d := range f.deps {
 		f.Deps = append(f.Deps, d.ID)
+		if d.pkg != nil {
+			f.pkg.imps[d.pkg.ID] = 0
+		}
 	}
 }
 

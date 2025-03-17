@@ -3,19 +3,28 @@ package golang
 import (
 	"fmt"
 	"os"
+	"time"
+
+	"github.com/code-visible/golang/utils"
 )
 
 type Project struct {
-	Name      string      `json:"name"`
-	Directory string      `json:"directory"`
-	Pkgs      []*Pkg      `json:"pkgs"`
-	Files     []*File     `json:"files"`
-	Abstracts []*Abstract `json:"abstracts"`
-	Callables []*Callable `json:"callables"`
-	Calls     []*Call     `json:"calls"`
-	Deps      []*Dep      `json:"deps"`
+	Name       string       `json:"name"`
+	Lang       string       `json:"lang"`
+	Parser     string       `json:"parser"`
+	Timestamp  string       `json:"timestamp"`
+	Repository string       `json:"repository"`
+	Version    string       `json:"version"`
+	Pkgs       []*Pkg       `json:"pkgs"`
+	Files      []*File      `json:"files"`
+	Abstracts  []*Abstract  `json:"absts"`
+	Callables  []*Callable  `json:"fns"`
+	Calls      []*Call      `json:"calls"`
+	References []*Reference `json:"refs"`
+	Deps       []*Dep       `json:"deps"`
 
-	sm *SourceMap
+	sm        *SourceMap
+	directory string
 	// pkgs    map[string]*Pkg
 	dir2Pkg map[*SourceDir]*Pkg
 	deps    map[string]*Dep
@@ -27,9 +36,20 @@ func NewProject(project, directory string) *Project {
 		panic(err)
 	}
 	p := &Project{
-		Directory: directory,
-		Pkgs:      make([]*Pkg, 0, 16),
-		sm:        NewSourceMap(project, directory),
+		Lang:       LANG,
+		Parser:     fmt.Sprintf("%s %s", PARSER_TYPE, VERSION),
+		directory:  directory,
+		Timestamp:  time.Now().Format(time.RFC3339),
+		Repository: os.Getenv("repository"),
+		Version:    os.Getenv("version"),
+		Pkgs:       make([]*Pkg, 0, 16),
+		Files:      make([]*File, 0, 128),
+		Abstracts:  make([]*Abstract, 0, 128),
+		Callables:  make([]*Callable, 0, 1024),
+		Calls:      make([]*Call, 0, 1024),
+		References: make([]*Reference, 0, 128),
+		Deps:       make([]*Dep, 0, 128),
+		sm:         NewSourceMap(project, directory),
 		// pkgs:      make(map[string]*Pkg),
 		dir2Pkg: make(map[*SourceDir]*Pkg),
 		deps:    make(map[string]*Dep),
@@ -63,7 +83,10 @@ func (p *Project) createPkgs() {
 			continue
 		}
 		lookupName := fmt.Sprintf("%s/%s", p.Name, dir.Path)
-		pkg := NewSourcePkg(dir.Path, lookupName, p.sm, dir, p)
+		if dir.Path == "." {
+			lookupName = p.Name
+		}
+		pkg := NewSourcePkg(utils.FormatPath(dir.Path), lookupName, p.sm, dir, p)
 		p.Pkgs = append(p.Pkgs, pkg)
 		p.deps[lookupName] = NewPkgDep(lookupName, pkg)
 		p.dir2Pkg[dir] = pkg
@@ -76,8 +99,11 @@ func (p *Project) createFiles() {
 		if !f.GoSource || f.Test {
 			continue
 		}
-		file := NewSourceFile(f.Path, f.Name, p.sm, f, p.dir2Pkg[f.Dir])
-		p.Files = append(p.Files, file)
+		pkg := p.dir2Pkg[f.Dir]
+		if pkg != nil {
+			file := NewSourceFile(pkg.Path, f.Name, p.sm, f, pkg)
+			p.Files = append(p.Files, file)
+		}
 	}
 }
 
@@ -160,6 +186,10 @@ func (p *Project) injectFields() {
 	for _, v := range p.Callables {
 		v.SetupMethod()
 	}
+
+	for _, v := range p.Pkgs {
+		v.InjectImports()
+	}
 }
 
 func (p *Project) connect() {
@@ -181,6 +211,7 @@ func (p *Project) connect() {
 			callee := c.file.pkg.LookupCallable(selector)
 			if callee != nil {
 				c.Callee = callee.ID
+				c.file.Imports = append(c.file.Imports, callee.File)
 			}
 			continue
 		}
@@ -198,6 +229,7 @@ func (p *Project) connect() {
 			callee := dep.pkg.LookupCallable(selector)
 			if callee != nil {
 				c.Callee = callee.ID
+				c.file.Imports = append(c.file.Imports, callee.File)
 			}
 		} else {
 			c.Typ = CallTypePackage

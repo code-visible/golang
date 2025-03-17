@@ -37,7 +37,7 @@ func NewProject(project, directory string) *Project {
 	}
 	p := &Project{
 		Lang:       LANG,
-		Parser:     fmt.Sprintf("%s %s", PARSER_TYPE, PARSER_VERSION),
+		Parser:     fmt.Sprintf("%s %s", PARSER_TYPE, VERSION),
 		directory:  directory,
 		Timestamp:  time.Now().Format(time.RFC3339),
 		Repository: os.Getenv("repository"),

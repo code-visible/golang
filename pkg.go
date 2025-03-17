@@ -1,15 +1,18 @@
 package golang
 
 import (
+	"path"
+
 	"github.com/code-visible/golang/utils"
 )
 
 type Pkg struct {
-	ID      string   `json:"id"`
-	Name    string   `json:"name"`
-	Path    string   `json:"path"`
-	Imports []string `json:"imports"`
-	Exports []string `json:"exports"`
+	ID       string   `json:"id"`
+	Name     string   `json:"name"`
+	FullName string   `json:"fullName"`
+	Path     string   `json:"path"`
+	Imports  []string `json:"imports"`
+	Exports  []string `json:"exports"`
 
 	sm    *SourceMap
 	cs    map[string]*Callable
@@ -19,16 +22,17 @@ type Pkg struct {
 	p     *Project
 }
 
-func NewSourcePkg(path string, name string, sm *SourceMap, sd *SourceDir, p *Project) *Pkg {
+func NewSourcePkg(path_ string, name string, sm *SourceMap, sd *SourceDir, p *Project) *Pkg {
 	return &Pkg{
-		Name:  name,
-		Path:  path,
-		sm:    sm,
-		cs:    make(map[string]*Callable),
-		as:    make(map[string]*Abstract),
-		calls: make([]*Call, 0, 8),
-		sd:    sd,
-		p:     p,
+		Name:     path.Base(path_),
+		FullName: name,
+		Path:     path_,
+		sm:       sm,
+		cs:       make(map[string]*Callable),
+		as:       make(map[string]*Abstract),
+		calls:    make([]*Call, 0, 8),
+		sd:       sd,
+		p:        p,
 	}
 }
 
@@ -37,7 +41,7 @@ func (p *Pkg) SetupID() {
 }
 
 func (p *Pkg) LookupName() string {
-	return p.Name
+	return p.FullName
 }
 
 func (p *Pkg) Callables() []*Callable {

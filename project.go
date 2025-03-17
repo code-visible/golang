@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"time"
+
+	"github.com/code-visible/golang/utils"
 )
 
 type Project struct {
@@ -74,7 +76,10 @@ func (p *Project) createPkgs() {
 			continue
 		}
 		lookupName := fmt.Sprintf("%s/%s", p.Name, dir.Path)
-		pkg := NewSourcePkg(dir.Path, lookupName, p.sm, dir, p)
+		if dir.Path == "." {
+			lookupName = p.Name
+		}
+		pkg := NewSourcePkg(utils.FormatPath(dir.Path), lookupName, p.sm, dir, p)
 		p.Pkgs = append(p.Pkgs, pkg)
 		p.deps[lookupName] = NewPkgDep(lookupName, pkg)
 		p.dir2Pkg[dir] = pkg
@@ -87,8 +92,11 @@ func (p *Project) createFiles() {
 		if !f.GoSource || f.Test {
 			continue
 		}
-		file := NewSourceFile(f.Path, f.Name, p.sm, f, p.dir2Pkg[f.Dir])
-		p.Files = append(p.Files, file)
+		pkg := p.dir2Pkg[f.Dir]
+		if pkg != nil {
+			file := NewSourceFile(pkg.Path, f.Name, p.sm, f, pkg)
+			p.Files = append(p.Files, file)
+		}
 	}
 }
 

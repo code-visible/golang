@@ -12,11 +12,13 @@ import (
 )
 
 type File struct {
-	ID   string   `json:"id"`
-	Name string   `json:"name"`
-	Path string   `json:"path"`
-	Pkg  string   `json:"pkg"`
-	Deps []string `json:"deps"`
+	ID      string   `json:"id"`
+	Name    string   `json:"name"`
+	Path    string   `json:"path"`
+	Pkg     string   `json:"pkg"`
+	Deps    []string `json:"deps"`
+	Imports []string `json:"imports"`
+	Exports []string `json:"exports"`
 
 	sm   *SourceMap
 	pkg  *Pkg

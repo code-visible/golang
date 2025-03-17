@@ -21,7 +21,6 @@ type Callable struct {
 	Results    []string `json:"results"`
 	Method     bool     `json:"method"`
 	Private    bool     `json:"private"`
-	Orphan     bool     `json:"orphan"`
 
 	abstract string
 	ident    *ast.Ident

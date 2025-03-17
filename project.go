@@ -3,19 +3,25 @@ package golang
 import (
 	"fmt"
 	"os"
+	"time"
 )
 
 type Project struct {
-	Name      string      `json:"name"`
-	Directory string      `json:"directory"`
-	Pkgs      []*Pkg      `json:"pkgs"`
-	Files     []*File     `json:"files"`
-	Abstracts []*Abstract `json:"abstracts"`
-	Callables []*Callable `json:"callables"`
-	Calls     []*Call     `json:"calls"`
-	Deps      []*Dep      `json:"deps"`
+	Name       string      `json:"name"`
+	Lang       string      `json:"lang"`
+	Parser     string      `json:"parser"`
+	Timestamp  string      `json:"timestamp"`
+	Repository string      `json:"repository"`
+	Version    string      `json:"version"`
+	Pkgs       []*Pkg      `json:"pkgs"`
+	Files      []*File     `json:"files"`
+	Abstracts  []*Abstract `json:"abstracts"`
+	Callables  []*Callable `json:"callables"`
+	Calls      []*Call     `json:"calls"`
+	Deps       []*Dep      `json:"deps"`
 
-	sm *SourceMap
+	sm        *SourceMap
+	directory string
 	// pkgs    map[string]*Pkg
 	dir2Pkg map[*SourceDir]*Pkg
 	deps    map[string]*Dep
@@ -27,9 +33,14 @@ func NewProject(project, directory string) *Project {
 		panic(err)
 	}
 	p := &Project{
-		Directory: directory,
-		Pkgs:      make([]*Pkg, 0, 16),
-		sm:        NewSourceMap(project, directory),
+		Lang:       LANG,
+		Parser:     fmt.Sprintf("%s %s", PARSER_TYPE, PARSER_VERSION),
+		directory:  directory,
+		Timestamp:  time.Now().Format(time.RFC3339),
+		Repository: os.Getenv("repository"),
+		Version:    os.Getenv("version"),
+		Pkgs:       make([]*Pkg, 0, 16),
+		sm:         NewSourceMap(project, directory),
 		// pkgs:      make(map[string]*Pkg),
 		dir2Pkg: make(map[*SourceDir]*Pkg),
 		deps:    make(map[string]*Dep),

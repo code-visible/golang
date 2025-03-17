@@ -5,9 +5,11 @@ import (
 )
 
 type Pkg struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-	Path string `json:"path"`
+	ID      string   `json:"id"`
+	Name    string   `json:"name"`
+	Path    string   `json:"path"`
+	Imports []string `json:"imports"`
+	Exports []string `json:"exports"`
 
 	sm    *SourceMap
 	cs    map[string]*Callable

@@ -19,6 +19,7 @@ type Pkg struct {
 	calls []*Call
 	sd    *SourceDir
 	p     *Project
+	imps  map[string]byte
 }
 
 func NewSourcePkg(path_ string, name string, sm *SourceMap, sd *SourceDir, p *Project) *Pkg {
@@ -33,6 +34,7 @@ func NewSourcePkg(path_ string, name string, sm *SourceMap, sd *SourceDir, p *Pr
 		calls:    make([]*Call, 0, 8),
 		sd:       sd,
 		p:        p,
+		imps:     make(map[string]byte),
 	}
 }
 
@@ -58,6 +60,12 @@ func (p *Pkg) Abstracts() []*Abstract {
 		as = append(as, a)
 	}
 	return as
+}
+
+func (p *Pkg) InjectImports() {
+	for i := range p.imps {
+		p.Imports = append(p.Imports, i)
+	}
 }
 
 func (p *Pkg) Calls() []*Call {

@@ -69,6 +69,9 @@ func (f *File) BuildDeps() {
 func (f *File) InjectDeps() {
 	for _, d := range f.deps {
 		f.Deps = append(f.Deps, d.ID)
+		if d.pkg != nil {
+			f.pkg.imps[d.pkg.ID] = 0
+		}
 	}
 }
 

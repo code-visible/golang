@@ -186,6 +186,10 @@ func (p *Project) injectFields() {
 	for _, v := range p.Callables {
 		v.SetupMethod()
 	}
+
+	for _, v := range p.Pkgs {
+		v.InjectImports()
+	}
 }
 
 func (p *Project) connect() {
@@ -207,6 +211,7 @@ func (p *Project) connect() {
 			callee := c.file.pkg.LookupCallable(selector)
 			if callee != nil {
 				c.Callee = callee.ID
+				c.file.Imports = append(c.file.Imports, callee.File)
 			}
 			continue
 		}
@@ -224,6 +229,7 @@ func (p *Project) connect() {
 			callee := dep.pkg.LookupCallable(selector)
 			if callee != nil {
 				c.Callee = callee.ID
+				c.file.Imports = append(c.file.Imports, callee.File)
 			}
 		} else {
 			c.Typ = CallTypePackage

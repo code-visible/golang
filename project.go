@@ -211,7 +211,9 @@ func (p *Project) connect() {
 			callee := c.file.pkg.LookupCallable(selector)
 			if callee != nil {
 				c.Callee = callee.ID
-				c.file.Imports = append(c.file.Imports, callee.File)
+				if c.file != callee.file {
+					c.file.Imports = append(c.file.Imports, callee.File)
+				}
 			}
 			continue
 		}
@@ -229,7 +231,9 @@ func (p *Project) connect() {
 			callee := dep.pkg.LookupCallable(selector)
 			if callee != nil {
 				c.Callee = callee.ID
-				c.file.Imports = append(c.file.Imports, callee.File)
+				if c.file != callee.file {
+					c.file.Imports = append(c.file.Imports, callee.File)
+				}
 			}
 		} else {
 			c.Typ = CallTypePackage

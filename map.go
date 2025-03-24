@@ -22,13 +22,16 @@ type SourceMap struct {
 	fset      *token.FileSet
 }
 
-func NewSourceMap(project string, directory string) *SourceMap {
-	moduleName, err := parseModuleName(filepath.Join(project, "go.mod"))
-	if err != nil {
-		panic(err)
+func NewSourceMap(project, directory, module string) *SourceMap {
+	var err error
+	if module == "" {
+		module, err = parseModuleName(filepath.Join(project, "go.mod"))
+		if err != nil {
+			panic(err)
+		}
 	}
 	sm := &SourceMap{
-		module:    moduleName,
+		module:    module,
 		path:      project,
 		directory: filepath.ToSlash(directory),
 		dirs:      make(map[string]*SourceDir),

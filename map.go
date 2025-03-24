@@ -3,10 +3,12 @@ package golang
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"go/token"
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 )
 
@@ -20,9 +22,10 @@ type SourceMap struct {
 	dirs      map[string]*SourceDir
 	fs        []*SourceFile
 	fset      *token.FileSet
+	excludes  map[string]byte
 }
 
-func NewSourceMap(project, directory, module string) *SourceMap {
+func NewSourceMap(project, directory, excludes, module string) *SourceMap {
 	var err error
 	if module == "" {
 		module, err = parseModuleName(filepath.Join(project, "go.mod"))
@@ -30,6 +33,16 @@ func NewSourceMap(project, directory, module string) *SourceMap {
 			panic(err)
 		}
 	}
+
+	es := map[string]byte{}
+	excludesSplit := strings.Split(excludes, ",")
+	for _, item := range excludesSplit {
+		item = strings.Trim(item, " ")
+		if item != "" {
+			es[item] = 0
+		}
+	}
+
 	sm := &SourceMap{
 		module:    module,
 		path:      project,
@@ -37,14 +50,27 @@ func NewSourceMap(project, directory, module string) *SourceMap {
 		dirs:      make(map[string]*SourceDir),
 		fs:        make([]*SourceFile, 0, 64),
 		fset:      token.NewFileSet(),
+		excludes:  es,
 	}
 
 	return sm
 }
 
 func (sm *SourceMap) Scan() {
+	sm.normalizeExcludes()
 	sm.walk()
 	sm.parseFiles()
+}
+
+func (sm *SourceMap) normalizeExcludes() {
+	for key := range sm.excludes {
+		absp, err := filepath.Abs(key)
+		if err != nil {
+			fmt.Println("warn: unexpected exclude path: ", err)
+			continue
+		}
+		sm.excludes[absp] = 0
+	}
 }
 
 // Walk scan all the possible sub directories and files of given path.
@@ -55,8 +81,16 @@ func (sm *SourceMap) walk() {
 			panic(err)
 		}
 		absp, _ := filepath.Abs(path)
+		parent := filepath.Dir(absp)
 
 		if d.IsDir() {
+			if _, ok := sm.excludes[absp]; ok {
+				return nil
+			}
+			if _, ok := sm.excludes[parent]; ok {
+				sm.excludes[absp] = 0
+				return nil
+			}
 			dir := &SourceDir{
 				Path:  filepath.ToSlash(path),
 				Files: 0,
@@ -64,11 +98,14 @@ func (sm *SourceMap) walk() {
 			}
 			sm.dirs[absp] = dir
 		} else {
-			current := filepath.Dir(absp)
+			// ignore the files in the exclude directories
+			if _, ok := sm.dirs[parent]; !ok {
+				return nil
+			}
 			sm.fs = append(sm.fs, &SourceFile{
-				Path: filepath.ToSlash(current),
+				Path: filepath.ToSlash(parent),
 				Name: filepath.ToSlash(filepath.Base(path)),
-				Dir:  sm.dirs[current],
+				Dir:  sm.dirs[parent],
 			})
 		}
 

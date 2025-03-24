@@ -17,8 +17,7 @@ func main() {
 		dump      string
 		module    string
 		minify    string
-		// TODO: do we need excludes feature ?
-		// excludes  string
+		excludes  string
 	)
 
 	// set up command line arguments
@@ -27,7 +26,7 @@ func main() {
 	flag.StringVar(&dump, "dump", "parsed.json", "dump path of the project")
 	flag.StringVar(&module, "module", "", "module name of the project, it will search go.mod if not provided")
 	flag.StringVar(&minify, "minify", "", "keep only the core informations to minimize the output")
-	// flag.StringVar(&excludes, "excludes", "", "exclude the given directories")
+	flag.StringVar(&excludes, "excludes", "", "exclude the given directories, for example: `test,vendor,docs`")
 	flag.Parse()
 
 	fmt.Printf("graphy: try to parse project (%s) with folder (%s), dump to (%s)\n", project, directory, dump)
@@ -40,7 +39,7 @@ func main() {
 	dumpPath := path.Join(currentPath, dump)
 
 	// enter the parse progress
-	p := golang.NewProject(project, directory, module)
+	p := golang.NewProject(project, directory, excludes, module)
 	p.Initialize()
 	p.Parse()
 
@@ -77,5 +76,4 @@ func main() {
 		fmt.Println("fail to dump result to given dump path")
 		panic(err)
 	}
-
 }

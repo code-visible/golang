@@ -48,7 +48,7 @@ type ProjectMinify struct {
 	Files      []*File `json:"files"`
 }
 
-func NewProject(project, directory, module string) *Project {
+func NewProject(project, directory, excludes, module string) *Project {
 	err := os.Chdir(project)
 	if err != nil {
 		panic(err)
@@ -68,7 +68,7 @@ func NewProject(project, directory, module string) *Project {
 		Calls:      make([]*Call, 0, 1024),
 		References: make([]*Reference, 0, 128),
 		Deps:       make([]*Dep, 0, 128),
-		sm:         NewSourceMap(project, directory, module),
+		sm:         NewSourceMap(project, directory, excludes, module),
 		// pkgs:      make(map[string]*Pkg),
 		dir2Pkg: make(map[*SourceDir]*Pkg),
 		deps:    make(map[string]*Dep),

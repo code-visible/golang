@@ -25,11 +25,15 @@ func main() {
 	flag.StringVar(&directory, "directory", ".", "directory of the project to parse")
 	flag.StringVar(&dump, "dump", "parsed.json", "dump path of the project")
 	flag.StringVar(&module, "module", "", "module name of the project, it will search go.mod if not provided")
-	flag.StringVar(&minify, "minify", "", "keep only the core informations to minimize the output")
-	flag.StringVar(&excludes, "excludes", "", "exclude the given directories, for example: `test,vendor,docs`")
+	flag.StringVar(&minify, "minify", "", "keep only the core informations to minimize the output, default minify=0")
+	flag.StringVar(&excludes, "excludes", "", "exclude the given directories, for example: `excludes=test,vendor,docs`")
 	flag.Parse()
 
-	fmt.Printf("graphy: try to parse project (%s) with folder (%s), dump to (%s)\n", project, directory, dump)
+	if module != "" {
+		fmt.Printf("gopher: parsing project (%s) with directory (%s)\n", project, directory)
+	} else {
+		fmt.Printf("gopher: parsing project (%s) with directory (%s), with customed module (%s)\n", project, directory, module)
+	}
 
 	currentPath, err := os.Getwd()
 	if err != nil {
@@ -44,7 +48,7 @@ func main() {
 	p.Parse()
 
 	var d []byte
-	if minify != "" {
+	if minify != "" && minify != "false" && minify != "0" {
 		minifiedProject := &golang.ProjectMinify{
 			Name:       p.Name,
 			Lang:       p.Lang,
@@ -76,4 +80,5 @@ func main() {
 		fmt.Println("fail to dump result to given dump path")
 		panic(err)
 	}
+	fmt.Printf("gopher: parse project successfully, dump to %s\n", dumpPath)
 }

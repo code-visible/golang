@@ -14,6 +14,7 @@ type Project struct {
 	Parser     string       `json:"parser"`
 	Timestamp  string       `json:"timestamp"`
 	Repository string       `json:"repository"`
+	Typ        string       `json:"typ"`
 	Version    string       `json:"version"`
 	Pkgs       []*Pkg       `json:"pkgs"`
 	Files      []*File      `json:"files"`
@@ -30,7 +31,24 @@ type Project struct {
 	deps    map[string]*Dep
 }
 
-func NewProject(project, directory string) *Project {
+type ProjectMinify struct {
+	Name       string  `json:"name"`
+	Lang       string  `json:"lang"`
+	Parser     string  `json:"parser"`
+	Timestamp  string  `json:"timestamp"`
+	Repository string  `json:"repository"`
+	Version    string  `json:"version"`
+	Typ        string  `json:"typ"`
+	Abstracts  uint64  `json:"absts"`
+	Callables  uint64  `json:"fns"`
+	Calls      uint64  `json:"calls"`
+	References uint64  `json:"refs"`
+	Deps       uint64  `json:"deps"`
+	Pkgs       []*Pkg  `json:"pkgs"`
+	Files      []*File `json:"files"`
+}
+
+func NewProject(project, directory, excludes, module string) *Project {
 	err := os.Chdir(project)
 	if err != nil {
 		panic(err)
@@ -41,6 +59,7 @@ func NewProject(project, directory string) *Project {
 		directory:  directory,
 		Timestamp:  time.Now().Format(time.RFC3339),
 		Repository: os.Getenv("repository"),
+		Typ:        PARSE_TYPE_NORMAL,
 		Version:    os.Getenv("version"),
 		Pkgs:       make([]*Pkg, 0, 16),
 		Files:      make([]*File, 0, 128),
@@ -49,7 +68,7 @@ func NewProject(project, directory string) *Project {
 		Calls:      make([]*Call, 0, 1024),
 		References: make([]*Reference, 0, 128),
 		Deps:       make([]*Dep, 0, 128),
-		sm:         NewSourceMap(project, directory),
+		sm:         NewSourceMap(project, directory, excludes, module),
 		// pkgs:      make(map[string]*Pkg),
 		dir2Pkg: make(map[*SourceDir]*Pkg),
 		deps:    make(map[string]*Dep),
@@ -211,7 +230,9 @@ func (p *Project) connect() {
 			callee := c.file.pkg.LookupCallable(selector)
 			if callee != nil {
 				c.Callee = callee.ID
-				c.file.Imports = append(c.file.Imports, callee.File)
+				if c.file != callee.file {
+					c.file.Imports = append(c.file.Imports, callee.File)
+				}
 			}
 			continue
 		}
@@ -229,7 +250,9 @@ func (p *Project) connect() {
 			callee := dep.pkg.LookupCallable(selector)
 			if callee != nil {
 				c.Callee = callee.ID
-				c.file.Imports = append(c.file.Imports, callee.File)
+				if c.file != callee.file {
+					c.file.Imports = append(c.file.Imports, callee.File)
+				}
 			}
 		} else {
 			c.Typ = CallTypePackage

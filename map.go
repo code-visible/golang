@@ -23,9 +23,10 @@ type SourceMap struct {
 	fs        []*SourceFile
 	fset      *token.FileSet
 	excludes  map[string]byte
+	types     map[string]byte
 }
 
-func NewSourceMap(project, directory, excludes, module string) *SourceMap {
+func NewSourceMap(project, directory, excludes, module, types string) *SourceMap {
 	var err error
 	if module == "" {
 		module, err = parseModuleName(filepath.Join(project, "go.mod"))
@@ -43,6 +44,15 @@ func NewSourceMap(project, directory, excludes, module string) *SourceMap {
 		}
 	}
 
+	typs := map[string]byte{}
+	typesSplit := strings.Split(types, ",")
+	for _, item := range typesSplit {
+		item = strings.Trim(item, " ")
+		if item != "" {
+			typs[item] = 0
+		}
+	}
+
 	sm := &SourceMap{
 		module:    module,
 		path:      project,
@@ -51,6 +61,7 @@ func NewSourceMap(project, directory, excludes, module string) *SourceMap {
 		fs:        make([]*SourceFile, 0, 64),
 		fset:      token.NewFileSet(),
 		excludes:  es,
+		types:     typs,
 	}
 
 	return sm
@@ -102,6 +113,11 @@ func (sm *SourceMap) walk() {
 			if _, ok := sm.dirs[parent]; !ok {
 				return nil
 			}
+			// check if the file should be parsed
+			fileName := filepath.Base(path)
+			if !sm.shouldParseFile(fileName) {
+				return nil
+			}
 			sm.fs = append(sm.fs, &SourceFile{
 				Path: filepath.ToSlash(parent),
 				Name: filepath.ToSlash(filepath.Base(path)),
@@ -114,6 +130,20 @@ func (sm *SourceMap) walk() {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func (sm *SourceMap) shouldParseFile(fileName string) bool {
+	if _, ok := sm.types[fileName]; ok {
+		return true
+	}
+	ext := filepath.Ext(fileName)
+	if ext == ".go" {
+		return true
+	}
+	if _, ok := sm.types[fmt.Sprintf("*%s", ext)]; ok {
+		return true
+	}
+	return false
 }
 
 func (sm *SourceMap) parseFiles() {

@@ -55,6 +55,7 @@ func main() {
 			Name:       p.Name,
 			Lang:       p.Lang,
 			Parser:     p.Parser,
+			Protocol:   p.Protocol,
 			Timestamp:  p.Timestamp,
 			Repository: p.Repository,
 			Version:    p.Version,

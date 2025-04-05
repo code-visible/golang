@@ -12,6 +12,7 @@ type Project struct {
 	Name       string       `json:"name"`
 	Lang       string       `json:"lang"`
 	Parser     string       `json:"parser"`
+	Protocol   string       `json:"protocol"`
 	Timestamp  string       `json:"timestamp"`
 	Repository string       `json:"repository"`
 	Typ        string       `json:"typ"`
@@ -35,6 +36,7 @@ type ProjectMinify struct {
 	Name       string  `json:"name"`
 	Lang       string  `json:"lang"`
 	Parser     string  `json:"parser"`
+	Protocol   string  `json:"protocol"`
 	Timestamp  string  `json:"timestamp"`
 	Repository string  `json:"repository"`
 	Version    string  `json:"version"`
@@ -55,7 +57,8 @@ func NewProject(project, directory, excludes, module, types string) *Project {
 	}
 	p := &Project{
 		Lang:       LANG,
-		Parser:     fmt.Sprintf("%s %s", PARSER_TYPE, VERSION),
+		Parser:     fmt.Sprintf("%s %s", PARSER_TYPE, PARSER_VERSION),
+		Protocol:   PROTOCOL_VERSION,
 		directory:  directory,
 		Timestamp:  time.Now().Format(time.RFC3339),
 		Repository: os.Getenv("repository"),

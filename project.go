@@ -25,8 +25,8 @@ type Project struct {
 	References []*Reference `json:"refs"`
 	Deps       []*Dep       `json:"deps"`
 
-	sm        *SourceMap
-	directory string
+	sm   *SourceMap
+	test bool
 	// pkgs    map[string]*Pkg
 	dir2Pkg map[*SourceDir]*Pkg
 	deps    map[string]*Dep
@@ -50,7 +50,7 @@ type ProjectMinify struct {
 	Files      []*File `json:"files"`
 }
 
-func NewProject(project, directory, excludes, module, types string) *Project {
+func NewProject(project, directory, excludes, module, types string, test bool) *Project {
 	err := os.Chdir(project)
 	if err != nil {
 		panic(err)
@@ -59,7 +59,6 @@ func NewProject(project, directory, excludes, module, types string) *Project {
 		Lang:       LANG,
 		Parser:     fmt.Sprintf("%s %s", PARSER_TYPE, PARSER_VERSION),
 		Protocol:   PROTOCOL_VERSION,
-		directory:  directory,
 		Timestamp:  time.Now().Format(time.RFC3339),
 		Repository: os.Getenv("repository"),
 		Typ:        PARSE_TYPE_NORMAL,
@@ -72,6 +71,7 @@ func NewProject(project, directory, excludes, module, types string) *Project {
 		References: make([]*Reference, 0, 128),
 		Deps:       make([]*Dep, 0, 128),
 		sm:         NewSourceMap(project, directory, excludes, module, types),
+		test:       test,
 		// pkgs:      make(map[string]*Pkg),
 		dir2Pkg: make(map[*SourceDir]*Pkg),
 		deps:    make(map[string]*Dep),
@@ -118,21 +118,28 @@ func (p *Project) createPkgs() {
 // create files from source
 func (p *Project) createFiles() {
 	for _, f := range p.sm.Files() {
-		if !f.GoSource || f.Test {
+		if f.GoSource {
+			if !p.test && f.Test {
+				continue
+			}
+			pkg := p.dir2Pkg[f.Dir]
+			if pkg != nil {
+				file := NewSourceFile(pkg.Path, f.Name, p.sm, f, pkg)
+				p.Files = append(p.Files, file)
+			}
 			continue
 		}
-		pkg := p.dir2Pkg[f.Dir]
-		if pkg != nil {
-			file := NewSourceFile(pkg.Path, f.Name, p.sm, f, pkg)
-			p.Files = append(p.Files, file)
-		}
+		file := NewSourceFile(utils.FormatPath(f.Dir.Path), f.Name, p.sm, f, nil)
+		p.Files = append(p.Files, file)
 	}
 }
 
 // retrive the nodes
 func (p *Project) retriveNodes() {
 	for _, f := range p.Files {
-		f.EnumerateDecls()
+		if f.Source && f.Parsed {
+			f.EnumerateDecls()
+		}
 	}
 
 	for _, pkg := range p.Pkgs {
@@ -144,7 +151,9 @@ func (p *Project) retriveNodes() {
 // build dependencies of files
 func (p *Project) buildDeps() {
 	for _, f := range p.Files {
-		f.BuildDeps()
+		if f.Source && f.Parsed {
+			f.BuildDeps()
+		}
 	}
 
 	for _, v := range p.deps {
@@ -162,7 +171,9 @@ func (p *Project) buildDeps() {
 // retrive the calls
 func (p *Project) retriveCalls() {
 	for _, f := range p.Files {
-		f.SearchCalls()
+		if f.Source && f.Parsed {
+			f.SearchCalls()
+		}
 	}
 	for _, pkg := range p.Pkgs {
 		p.Calls = append(p.Calls, pkg.Calls()...)
@@ -175,7 +186,9 @@ func (p *Project) injectFields() {
 	}
 
 	for _, v := range p.Files {
-		v.Pkg = v.pkg.ID
+		if v.pkg != nil {
+			v.Pkg = v.pkg.ID
+		}
 		v.SetupID()
 	}
 
@@ -201,7 +214,9 @@ func (p *Project) injectFields() {
 	}
 
 	for _, v := range p.Files {
-		v.InjectDeps()
+		if v.Source && v.Parsed {
+			v.InjectDeps()
+		}
 	}
 
 	for _, v := range p.Callables {

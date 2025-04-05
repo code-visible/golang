@@ -15,6 +15,9 @@ type File struct {
 	ID      string   `json:"id"`
 	Name    string   `json:"name"`
 	Path    string   `json:"path"`
+	Source  bool     `json:"source"`
+	Parsed  bool     `json:"parsed"`
+	Error   string   `json:"error"`
 	Pkg     string   `json:"pkg"`
 	Deps    []string `json:"deps"`
 	Imports []string `json:"imports"`
@@ -28,9 +31,13 @@ type File struct {
 }
 
 func NewSourceFile(path string, name string, sm *SourceMap, sf *SourceFile, pkg *Pkg) *File {
+	source := sf.GoSource
 	return &File{
 		Path:    path,
 		Name:    name,
+		Source:  source,
+		Parsed:  sf.GoSource && sf.AST != nil,
+		Error:   sf.Error,
 		Deps:    []string{},
 		Imports: make([]string, 0, 8),
 		sm:      sm,
@@ -47,6 +54,9 @@ func (f *File) SetupID() {
 }
 
 func (f *File) LookupName() string {
+	if !f.Source {
+		return filepath.Join("%s/%s", f.Path, f.Name)
+	}
 	return fmt.Sprintf("%s/%s", f.pkg.Name, f.Name)
 }
 

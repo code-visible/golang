@@ -19,6 +19,7 @@ func main() {
 		minify    string
 		excludes  string
 		types     string
+		test      string
 	)
 
 	// set up command line arguments
@@ -27,14 +28,15 @@ func main() {
 	flag.StringVar(&dump, "dump", "parsed.json", "dump path of the project")
 	flag.StringVar(&module, "module", "", "module name of the project, it will search go.mod if not provided")
 	flag.StringVar(&minify, "minify", "", "keep only the core informations to minimize the output, default minify=0")
-	flag.StringVar(&excludes, "excludes", "", "exclude the given directories, for example: `excludes=test,vendor,docs`")
-	flag.StringVar(&types, "types", "", "parse the given types, for example: `types=*.yml,*.json,,README.md,LICENSE,go.mod,go.sum`")
+	flag.StringVar(&excludes, "excludes", golang.DEFAULT_EXCLUDE_DIRECTORIES, "exclude the given directories, for example: `excludes=test,vendor,docs`")
+	flag.StringVar(&types, "types", golang.DEFAULT_INCLUDE_FILE_TYPES, "parse the given types, for example: `types=*.yml,*.json,,README.md,LICENSE,go.mod,go.sum`")
+	flag.StringVar(&test, "test", "", "allow test, default test=0")
 	flag.Parse()
 
 	if module != "" {
-		fmt.Printf("gopher: parsing project (%s) with directory (%s)\n", project, directory)
-	} else {
 		fmt.Printf("gopher: parsing project (%s) with directory (%s), with customed module (%s)\n", project, directory, module)
+	} else {
+		fmt.Printf("gopher: parsing project (%s) with directory (%s)\n", project, directory)
 	}
 
 	currentPath, err := os.Getwd()
@@ -44,8 +46,13 @@ func main() {
 	}
 	dumpPath := path.Join(currentPath, dump)
 
+	allowTest := false
+	if test != "" && test != "false" && test != "0" {
+		allowTest = true
+	}
+
 	// enter the parse progress
-	p := golang.NewProject(project, directory, excludes, module, types)
+	p := golang.NewProject(project, directory, excludes, module, types, allowTest)
 	p.Initialize()
 	p.Parse()
 

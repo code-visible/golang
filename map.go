@@ -24,6 +24,7 @@ type SourceMap struct {
 	fset      *token.FileSet
 	excludes  map[string]byte
 	types     map[string]byte
+	dot       bool
 }
 
 func NewSourceMap(project, directory, excludes, module, types string) *SourceMap {
@@ -35,19 +36,21 @@ func NewSourceMap(project, directory, excludes, module, types string) *SourceMap
 		}
 	}
 
+	dot := true
 	es := map[string]byte{}
 	excludesSplit := strings.Split(excludes, ",")
 	for _, item := range excludesSplit {
 		item = strings.Trim(item, " ")
+		if item == ".*" {
+			dot = false
+			continue
+		}
 		if item != "" {
 			es[item] = 0
 		}
 	}
 
 	typs := map[string]byte{}
-	if types == "" {
-		types = DEFAULT_INCLUDE_FILE_TYPES
-	}
 	typesSplit := strings.Split(types, ",")
 	for _, item := range typesSplit {
 		item = strings.Trim(item, " ")
@@ -65,6 +68,7 @@ func NewSourceMap(project, directory, excludes, module, types string) *SourceMap
 		fset:      token.NewFileSet(),
 		excludes:  es,
 		types:     typs,
+		dot:       dot,
 	}
 
 	return sm
@@ -90,21 +94,29 @@ func (sm *SourceMap) normalizeExcludes() {
 // Walk scan all the possible sub directories and files of given path.
 func (sm *SourceMap) walk() {
 	// TODO: handle error
-	err := filepath.WalkDir(sm.directory, func(path string, d fs.DirEntry, err error) error {
+	err := filepath.Walk(sm.directory, func(path string, d fs.FileInfo, err error) error {
 		if err != nil {
 			panic(err)
 		}
 		absp, _ := filepath.Abs(path)
 		parent := filepath.Dir(absp)
+		baseName := filepath.Base(path)
+		// ignore dot files and directories
+		if !sm.dot && baseName != "." && strings.HasPrefix(baseName, ".") {
+			if d.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		// ignore current directories or files
+		if _, ok := sm.excludes[absp]; ok {
+			if d.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
+		}
 
 		if d.IsDir() {
-			if _, ok := sm.excludes[absp]; ok {
-				return nil
-			}
-			if _, ok := sm.excludes[parent]; ok {
-				sm.excludes[absp] = 0
-				return nil
-			}
 			dir := &SourceDir{
 				Path:  filepath.ToSlash(path),
 				Files: 0,
@@ -112,18 +124,13 @@ func (sm *SourceMap) walk() {
 			}
 			sm.dirs[absp] = dir
 		} else {
-			// ignore the files in the exclude directories
-			if _, ok := sm.dirs[parent]; !ok {
-				return nil
-			}
 			// check if the file should be parsed
-			fileName := filepath.Base(path)
-			if !sm.shouldParseFile(fileName) {
+			if !sm.shouldParseFile(baseName) {
 				return nil
 			}
 			sm.fs = append(sm.fs, &SourceFile{
 				Path: filepath.ToSlash(parent),
-				Name: filepath.ToSlash(filepath.Base(path)),
+				Name: filepath.ToSlash(baseName),
 				Dir:  sm.dirs[parent],
 			})
 		}

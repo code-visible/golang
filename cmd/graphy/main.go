@@ -18,6 +18,7 @@ func main() {
 		module    string
 		minify    string
 		excludes  string
+		types     string
 	)
 
 	// set up command line arguments
@@ -27,6 +28,7 @@ func main() {
 	flag.StringVar(&module, "module", "", "module name of the project, it will search go.mod if not provided")
 	flag.StringVar(&minify, "minify", "", "keep only the core informations to minimize the output, default minify=0")
 	flag.StringVar(&excludes, "excludes", "", "exclude the given directories, for example: `excludes=test,vendor,docs`")
+	flag.StringVar(&types, "types", "", "parse the given types, for example: `types=*.yml,*.json,,README.md,LICENSE,go.mod,go.sum`")
 	flag.Parse()
 
 	if module != "" {
@@ -43,7 +45,7 @@ func main() {
 	dumpPath := path.Join(currentPath, dump)
 
 	// enter the parse progress
-	p := golang.NewProject(project, directory, excludes, module)
+	p := golang.NewProject(project, directory, excludes, module, types)
 	p.Initialize()
 	p.Parse()
 

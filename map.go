@@ -45,6 +45,9 @@ func NewSourceMap(project, directory, excludes, module, types string) *SourceMap
 	}
 
 	typs := map[string]byte{}
+	if types == "" {
+		types = DEFAULT_INCLUDE_FILE_TYPES
+	}
 	typesSplit := strings.Split(types, ",")
 	for _, item := range typesSplit {
 		item = strings.Trim(item, " ")

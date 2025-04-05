@@ -184,7 +184,6 @@ func (p *Project) injectFields() {
 
 	for _, v := range p.Abstracts {
 		v.File = v.file.ID
-		v.Pkg = v.file.pkg.ID
 		v.SetupID()
 	}
 

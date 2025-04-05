@@ -13,7 +13,6 @@ type Abstract struct {
 	Pos     string   `json:"pos"`
 	Name    string   `json:"name"`
 	File    string   `json:"file"`
-	Pkg     string   `json:"pkg"`
 	Comment string   `json:"comment"`
 	Fields  []string `json:"fields"`
 
